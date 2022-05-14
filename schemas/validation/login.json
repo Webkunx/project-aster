@@ -1,0 +1,30 @@
+{
+  "type": "object",
+  "required": ["body", "params"],
+  "properties":{
+    "body": {
+      "type": "object",
+      "required": [
+        "email",
+        "password"
+      ],
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      }
+    },
+    "params": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
+        }
+      }
+    }
+  }
+
+}
