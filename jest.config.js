@@ -3,7 +3,6 @@ module.exports = {
   preset: "ts-jest",
   testEnvironment: "node",
   verbose: true,
-  collectCoverage: true,
   coverageDirectory: "./cov",
   collectCoverageFrom: ["./src/**/*.ts"],
   globals: {
@@ -14,4 +13,5 @@ module.exports = {
   transform: {
     "^.+\\\\.(ts|tsx)$": "ts-jest",
   },
+  modulePathIgnorePatterns: ["<rootDir>/dist/"]
 };
