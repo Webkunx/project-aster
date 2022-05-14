@@ -13,7 +13,7 @@ const server = fastify();
 // const producer = new MessageProducer(kafka.producer());
 
 const requestMapper = new RequestMapper({
-  pathToValidationSchemas: path.join(__dirname + "../../../schemas/validation"),
+  pathToValidationSchemas: path.join(__dirname, "../schemas/validation"),
 });
 requestMapper.addHandler((data) => console.log(JSON.stringify(data)));
 
@@ -63,7 +63,7 @@ server.listen(process.env.PORT || 4000, async (err, address) => {
   // await producer.init();
   const request = JSON.parse(
     await readFile(
-      path.join(__dirname, "../../schemas/requests/login.json"),
+      path.join(__dirname, "../schemas/requests/login.json"),
       "utf-8"
     )
   );
