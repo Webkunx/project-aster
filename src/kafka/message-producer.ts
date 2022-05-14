@@ -1,5 +1,5 @@
 import { CompressionTypes, Producer } from "kafkajs";
-import { Message } from "../message";
+import { Message } from "./message";
 
 export class MessageProducer {
   constructor(private readonly producer: Producer) {}

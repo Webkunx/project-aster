@@ -17,9 +17,6 @@ export class Message {
     this.headers = headers;
   }
 
-  static from(rawMessage: null): Message;
-  static from(rawMessage: string): Message;
-  static from(rawMessage: Buffer): Message;
   static from(rawMessage: Buffer | null | string): Message {
     if (!rawMessage) return Message.blankMessage();
     const stringifiedMessage =

@@ -1,9 +1,9 @@
 import { fastify } from "fastify";
-import { kafkaFactory } from "./broker/kafka.factory";
-import { MessageConsumer } from "./broker/consumer.factory";
-import { MessageProducer } from "./broker/message-producer";
-import { Message } from "./message";
-import { HttpMethods, RequestMapper } from "./request-mapper";
+import { kafkaFactory } from "./kafka/kafka.factory";
+import { MessageConsumer } from "./kafka/consumer.factory";
+import { MessageProducer } from "./kafka/message-producer";
+import { Message } from "./kafka/message";
+import { HttpMethods, RequestMapper } from "./core/request-mapper";
 import { readFile } from "fs/promises";
 import path from "path";
 

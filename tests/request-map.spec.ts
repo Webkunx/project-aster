@@ -3,7 +3,7 @@ import {
   HttpMethods,
   RequestMapper,
   RequestToAdd,
-} from "../src/request-mapper";
+} from "../src/core/request-mapper";
 
 const baseHandler = (data: any) => data;
 
