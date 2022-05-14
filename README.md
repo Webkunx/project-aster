@@ -15,6 +15,6 @@
       2. Add Analytics tool for logs (some OS project like Coralogix)
       3. Add Metrics tool for monitoring - CPU, RAM, RPS, RPS per pod, Event Loop Delay
    5. Implement CI/CD tools:
-      1. Run Unit tests for each PR.
-      2. Generate COV report for each PR (on GH pages?).
+      1. Run Unit tests for each PR. :white_check_mark:
+      2. Generate COV report for each PR. :white_check_mark:
       3. Deploy for each PR.
