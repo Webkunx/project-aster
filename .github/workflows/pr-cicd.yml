@@ -12,8 +12,8 @@ jobs:
         with:
           node-version: 16.x
           cache: npm
+      - run: npm ci
+      - run: npm run test:cov
       - uses: romeovs/lcov-reporter-action@v0.2.16
         with:
           lcov-file: ./cov/lcov.info
-      - run: npm ci
-      - run: npm test:cov
