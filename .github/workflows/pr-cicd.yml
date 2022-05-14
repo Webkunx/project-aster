@@ -2,13 +2,15 @@ name: Project Astera CICD
 
 on: [push]
 
-steps:
-  - uses: actions/checkout@v3
-  - uses: actions/setup-node@v3
-  - uses: romeovs/lcov-reporter-action@v0.2.16
-    with:
-      lcov-file: ./cov/lcov.info
-      node-version: 16.13
-      cache: "npm"
-  - run: npm ci
-  - run: npm test:cov
+jobs:
+  test:
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      - uses: romeovs/lcov-reporter-action@v0.2.16
+        with:
+          lcov-file: ./cov/lcov.info
+          node-version: 16.13
+          cache: "npm"
+      - run: npm ci
+      - run: npm test:cov
