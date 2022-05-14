@@ -4,13 +4,16 @@ on: [push]
 
 jobs:
   test:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - name: Setup Node 16.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+          cache: npm
       - uses: romeovs/lcov-reporter-action@v0.2.16
         with:
           lcov-file: ./cov/lcov.info
-          node-version: 16.13
-          cache: "npm"
       - run: npm ci
       - run: npm test:cov
