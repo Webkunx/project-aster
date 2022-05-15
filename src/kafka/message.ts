@@ -17,9 +17,10 @@ export class Message {
     this.headers = headers;
   }
 
-  static from(rawMessage: Buffer | null) {
+  static from(rawMessage: Buffer | null | string): Message {
     if (!rawMessage) return Message.blankMessage();
-    const stringifiedMessage = rawMessage.toString();
+    const stringifiedMessage =
+      typeof rawMessage === "string" ? rawMessage : rawMessage.toString();
     if (!stringifiedMessage) return Message.blankMessage();
     const { headers, data } = JSON.parse(stringifiedMessage);
     return new Message({ data, headers });
@@ -58,7 +59,7 @@ class MessageWithCorrelationId extends Message {
     data?: StringObject;
   }) {
     const correlationId = uuid();
-    headers = { ...(headers || {}), id: correlationId };
+    headers = { ...headers, id: correlationId };
     super({ headers, data });
     this.correlationId = correlationId;
   }

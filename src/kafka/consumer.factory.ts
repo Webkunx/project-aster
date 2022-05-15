@@ -1,6 +1,6 @@
-import { Consumer, EachMessagePayload, Kafka } from "kafkajs";
+import { Consumer, EachMessagePayload } from "kafkajs";
 import EventEmitter from "events";
-import { Message } from "../message";
+import { Message } from "./message";
 
 type EachMessageListener = (payload: EachMessagePayload) => Promise<void>;
 
@@ -21,9 +21,10 @@ export class MessageConsumer extends EventEmitter {
   private getResponsesListener(): EachMessageListener {
     return async (payload) => {
       const { message: rawMessage } = payload;
-      const { headers } = Message.from(rawMessage?.value);
-      if (!headers?.id) return;
-      this.emit(headers.id, Message);
+      const message = Message.from(rawMessage?.value);
+      const correlationId = message?.headers?.id;
+      if (!correlationId) return;
+      this.emit(correlationId, Message);
     };
   }
 }

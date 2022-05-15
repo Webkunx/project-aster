@@ -1,11 +1,14 @@
+import { LoggingCommunicationStrategy } from "./core/communication-strategies/logging.communication-strategy";
 import { fastify } from "fastify";
-import { kafkaFactory } from "./broker/kafka.factory";
-import { MessageConsumer } from "./broker/consumer.factory";
-import { MessageProducer } from "./broker/message-producer";
-import { Message } from "./message";
-import { HttpMethods, RequestMapper } from "./request-mapper";
+import { kafkaFactory } from "./kafka/kafka.factory";
+import { MessageConsumer } from "./kafka/consumer.factory";
+import { MessageProducer } from "./kafka/message-producer";
+import { Message } from "./kafka/message";
+import { RequestMapper } from "./core/request-mapper";
 import { readFile } from "fs/promises";
 import path from "path";
+import { HTTPMethods } from "./core/http-methods";
+import { ParsedJSON } from "./core/json";
 
 const server = fastify();
 // const kafka = kafkaFactory(["localhost:29092"]);
@@ -15,7 +18,7 @@ const server = fastify();
 const requestMapper = new RequestMapper({
   pathToValidationSchemas: path.join(__dirname, "../schemas/validation"),
 });
-requestMapper.addHandler((data) => console.log(JSON.stringify(data)));
+requestMapper.addHandler(new LoggingCommunicationStrategy());
 
 // server.get("/ping", async (request, reply) => {
 //   return { success: true, timestamp: Date.now() };
@@ -28,9 +31,9 @@ server.route({
     try {
       await requestMapper.handleRequest({
         url: request.url,
-        method: request.method as HttpMethods,
+        method: request.method as HTTPMethods,
         data: {
-          body: request.body,
+          body: request.body as ParsedJSON,
         },
       });
     } catch (error) {
