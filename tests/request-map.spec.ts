@@ -7,8 +7,10 @@ import { BaseCommunicationStrategy } from "../src/core/communication-strategies/
 const baseHandler = new BaseCommunicationStrategy();
 
 // STEPS
-// update request
 // multiple handlers
+// update request
+// proper error handling
+// proper logger
 // part key
 describe("RequestMapper", () => {
   describe("Routing", () => {

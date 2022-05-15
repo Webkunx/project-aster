@@ -51,9 +51,13 @@ export class RequestMapper {
     this.requestMap = {};
   }
 
+  private static parseUrl(url: string) {
+    return url.split("/").filter((el) => el);
+  }
+
   async addRequest(request: RequestSchema): Promise<void> {
     const { url, method, validationSchema, payloadForRequestHandler } = request;
-    const path = url.split("/").filter((el) => el);
+    const path = RequestMapper.parseUrl(url);
     let requestMapFromLastStep = this.requestMap;
     const pathParams = [];
     for (let i = 0; i < path.length; i++) {
@@ -81,6 +85,7 @@ export class RequestMapper {
   }
 
   private async getValidationFunction(validationSchemaPath: string) {
+    // TODO: change to strategy to have S3
     const validationSchema = JSON.parse(
       await readFile(
         path.join(this.pathToValidationSchemas, validationSchemaPath + ".json"),
@@ -108,14 +113,14 @@ export class RequestMapper {
 
   private getParsedRequest(request: IncomingRequest): ParsedRequest {
     const { url, method } = request;
-    const splitUrl = url.split("/").filter((el) => el);
+    const path = RequestMapper.parseUrl(url);
     let requestMap: RequestMap | RequestMapLeafByMethod = this.requestMap;
     const paramValues: string[] = [];
-    for (let urlPart of splitUrl) {
-      let newStepRequestMap = (requestMap as RequestMap)[urlPart];
+    for (let pathPart of path) {
+      let newStepRequestMap = (requestMap as RequestMap)[pathPart];
       if (!newStepRequestMap && (requestMap as RequestMap)[":"]) {
         newStepRequestMap = (requestMap as RequestMap)[":"];
-        paramValues.push(urlPart);
+        paramValues.push(pathPart);
       }
       requestMap = newStepRequestMap;
       if (!requestMap) {
@@ -158,7 +163,7 @@ export class RequestMapper {
     const { success, errors } = validationFunction(data);
 
     if (!success) {
-      // errors
+      // TODO: change to proper error handling
       console.log(errors);
 
       throw new Error("Invalid request");
