@@ -1,66 +1,45 @@
 import path from "path";
 import Ajv from "ajv";
 import { readFile } from "fs/promises";
-
-interface DataToSend {
-  topic: string;
-  messageName: string;
-  partitionKey?: string;
-  data: any;
-}
+import { HTTPMethods } from "./http-methods";
+import { CommunicationStrategy } from "./communication-strategies/communication-strategy";
+import { ParsedJSON } from "./json";
+import { PayloadForRequestHandler } from "./communication-strategies/payloads/payload-for-request-handler";
+import { RequestSchema } from "./request-schema";
 
 const ajv = new Ajv({ allErrors: true, coerceTypes: true });
 
-export enum HttpMethods {
-  POST = "POST",
-  PUT = "PUT",
-  DELETE = "DELETE",
-  GET = "GET",
-}
-
-interface Request {
-  url: string;
-  method: HttpMethods;
-}
-
-interface IncomingRequest {
-  url: string;
-  method: HttpMethods;
-  data: any;
-}
-
-interface RequestWithValidation extends Request {
-  validationSchema?: string;
-}
-
-export type RequestToAdd = RequestWithValidation & Omit<DataToSend, "data">;
-type RequestHandler = ({
-  data,
-  partitionKey,
-  messageName,
-  topic,
-}: DataToSend) => any | Promise<any>;
 type ValidationFunction = (data: any) => {
   success: boolean;
   errors?: string[];
 };
-type RequestData = { validationFunction: ValidationFunction } & Omit<
-  DataToSend,
-  "data"
-> & { pathParams: string[] };
-type ParsedRequest = Omit<RequestData, "pathParams"> & {
+
+interface RequestMapLeaf {
+  payloadForRequestHandler: PayloadForRequestHandler;
+  pathParams: string[];
+  validationFunction: ValidationFunction;
+}
+interface ParsedRequest {
+  payloadForRequestHandler: PayloadForRequestHandler;
   params: Record<string, string>;
-};
-type RequestMapLeaf = {
-  [key in HttpMethods]?: RequestData;
+  validationFunction: ValidationFunction;
+}
+
+type RequestMapLeafByMethod = {
+  [key in HTTPMethods]?: RequestMapLeaf;
 };
 type RequestMap = {
-  [key: string]: RequestMap | RequestMapLeaf;
+  [key: string]: RequestMap | RequestMapLeafByMethod;
 };
+interface IncomingRequest {
+  url: string;
+  method: HTTPMethods;
+  data: ParsedJSON;
+}
 
 export class RequestMapper {
   private readonly pathToValidationSchemas: string;
-  private requestHandler: RequestHandler | undefined;
+  private requestHandler: CommunicationStrategy | undefined;
   private readonly requestMap: RequestMap;
 
   constructor({
@@ -72,9 +51,8 @@ export class RequestMapper {
     this.requestMap = {};
   }
 
-  async addRequest(request: RequestToAdd): Promise<void> {
-    const { url, method, validationSchema, messageName, topic, partitionKey } =
-      request;
+  async addRequest(request: RequestSchema): Promise<void> {
+    const { url, method, validationSchema, payloadForRequestHandler } = request;
     const path = url.split("/").filter((el) => el);
     let requestMapFromLastStep = this.requestMap;
     const pathParams = [];
@@ -89,9 +67,7 @@ export class RequestMapper {
       if (i === path.length - 1) {
         requestMapFromLastStep[pathPart] = {
           [method]: {
-            messageName,
-            topic,
-            partitionKey,
+            payloadForRequestHandler,
             pathParams,
             validationFunction: validationSchema
               ? await this.getValidationFunction(validationSchema)
@@ -126,14 +102,14 @@ export class RequestMapper {
     };
   }
 
-  addHandler(requestHandler: RequestHandler) {
+  addHandler(requestHandler: CommunicationStrategy) {
     this.requestHandler = requestHandler;
   }
 
   private getParsedRequest(request: IncomingRequest): ParsedRequest {
     const { url, method } = request;
     const splitUrl = url.split("/").filter((el) => el);
-    let requestMap: RequestMap | RequestMapLeaf = this.requestMap;
+    let requestMap: RequestMap | RequestMapLeafByMethod = this.requestMap;
     const paramValues: string[] = [];
     for (let urlPart of splitUrl) {
       let newStepRequestMap = (requestMap as RequestMap)[urlPart];
@@ -146,13 +122,13 @@ export class RequestMapper {
         throw new Error("Unknown request");
       }
     }
-    const requestData = (requestMap as RequestMapLeaf)[method];
-    if (!requestData) {
+    const requestMapLeaf = (requestMap as RequestMapLeafByMethod)[method];
+    if (!requestMapLeaf) {
       throw new Error("Unknown request");
     }
     return {
-      ...requestData,
-      params: requestData.pathParams.reduce(
+      ...requestMapLeaf,
+      params: requestMapLeaf.pathParams.reduce(
         (acc: Record<string, string>, value, idx) => {
           acc[value] = paramValues[idx];
           return acc;
@@ -167,22 +143,17 @@ export class RequestMapper {
       throw new Error("no request handler");
     }
     const parsedRequest = this.getParsedRequest(request);
-    const { topic, messageName, partitionKey, validationFunction, params } =
+    const { validationFunction, params, payloadForRequestHandler } =
       parsedRequest;
+    const data = { ...(request.data as Record<string, unknown>), params };
 
     if (!validationFunction) {
       console.log("No validation func");
 
-      return await this.requestHandler({
-        data: request.data,
-        partitionKey,
-        topic,
-        messageName,
-      });
-    }
-    const data = request.data;
-    if (Object.keys(params).length) {
-      data.params = params;
+      return await this.requestHandler.handleRequest(
+        data,
+        payloadForRequestHandler
+      );
     }
     const { success, errors } = validationFunction(data);
 
@@ -192,11 +163,9 @@ export class RequestMapper {
 
       throw new Error("Invalid request");
     }
-    return await this.requestHandler({
-      data: request.data,
-      partitionKey,
-      topic,
-      messageName,
-    });
+    return await this.requestHandler.handleRequest(
+      data,
+      payloadForRequestHandler
+    );
   }
 }
