@@ -18,7 +18,7 @@ describe("RequestMapper", () => {
       const request: RequestSchema = {
         url: "/simple",
         method: HTTPMethods.POST,
-        payloadForRequestHandler: {
+        defaultPayloadForRequestHandler: {
           topic: "simple",
           messageName: "SimpleMessage",
         },
@@ -32,7 +32,7 @@ describe("RequestMapper", () => {
         ),
       });
       await requestMapper.addRequest(request);
-      requestMapper.addHandler(baseHandler);
+      requestMapper.addRequestHandler({ requestHandler: baseHandler });
 
       const result = await requestMapper.handleRequest({
         url: "/simple",
@@ -52,7 +52,7 @@ describe("RequestMapper", () => {
       const request: RequestSchema = {
         url: "/something/very/hard",
         method: HTTPMethods.POST,
-        payloadForRequestHandler: {
+        defaultPayloadForRequestHandler: {
           topic: "simple",
           messageName: "SimpleMessage",
         },
@@ -61,7 +61,7 @@ describe("RequestMapper", () => {
       const request2 = JSON.parse(JSON.stringify(request)) as RequestSchema;
       request2.url = "/something/very/hard/yes";
       request2.method = HTTPMethods.DELETE;
-      request2.payloadForRequestHandler = {
+      request2.defaultPayloadForRequestHandler = {
         messageName: "UniqueMessage",
         topic: "simple",
       };
@@ -77,7 +77,7 @@ describe("RequestMapper", () => {
       await requestMapper.addRequest(request);
       await requestMapper.addRequest(request2);
       await requestMapper.addRequest(request3);
-      requestMapper.addHandler(baseHandler);
+      requestMapper.addRequestHandler({ requestHandler: baseHandler });
 
       const result = await requestMapper.handleRequest({
         url: "/something/very/hard/yes",
@@ -100,7 +100,7 @@ describe("RequestMapper", () => {
       const request: RequestSchema = {
         url: "/simple",
         method: HTTPMethods.POST,
-        payloadForRequestHandler: {
+        defaultPayloadForRequestHandler: {
           topic: "simple",
           messageName: "SimpleMessage",
         },
@@ -114,7 +114,7 @@ describe("RequestMapper", () => {
         ),
       });
       await requestMapper.addRequest(request);
-      requestMapper.addHandler(baseHandler);
+      requestMapper.addRequestHandler({ requestHandler: baseHandler });
 
       try {
         await requestMapper.handleRequest({
@@ -131,7 +131,7 @@ describe("RequestMapper", () => {
       const request: RequestSchema = {
         url: "/simple",
         method: HTTPMethods.POST,
-        payloadForRequestHandler: {
+        defaultPayloadForRequestHandler: {
           topic: "simple",
           messageName: "SimpleMessage",
         },
@@ -145,7 +145,7 @@ describe("RequestMapper", () => {
         ),
       });
       await requestMapper.addRequest(request);
-      requestMapper.addHandler(baseHandler);
+      requestMapper.addRequestHandler({ requestHandler: baseHandler });
 
       try {
         await requestMapper.handleRequest({
@@ -164,7 +164,7 @@ describe("RequestMapper", () => {
       const request: RequestSchema = {
         url: "/simple",
         method: HTTPMethods.POST,
-        payloadForRequestHandler: {
+        defaultPayloadForRequestHandler: {
           topic: "simple",
           messageName: "SimpleMessage",
         },
@@ -177,7 +177,7 @@ describe("RequestMapper", () => {
         ),
       });
       await requestMapper.addRequest(request);
-      requestMapper.addHandler(baseHandler);
+      requestMapper.addRequestHandler({ requestHandler: baseHandler });
 
       const result = await requestMapper.handleRequest({
         url: "/simple",
@@ -198,7 +198,7 @@ describe("RequestMapper", () => {
       const request: RequestSchema = {
         url: "/simple",
         method: HTTPMethods.POST,
-        payloadForRequestHandler: {
+        defaultPayloadForRequestHandler: {
           topic: "simple",
           messageName: "SimpleMessage",
         },
@@ -212,7 +212,7 @@ describe("RequestMapper", () => {
         ),
       });
       await requestMapper.addRequest(request);
-      requestMapper.addHandler(baseHandler);
+      requestMapper.addRequestHandler({ requestHandler: baseHandler });
 
       try {
         await requestMapper.handleRequest({
@@ -231,7 +231,7 @@ describe("RequestMapper", () => {
       const request: RequestSchema = {
         url: "/simple/:id",
         method: HTTPMethods.POST,
-        payloadForRequestHandler: {
+        defaultPayloadForRequestHandler: {
           topic: "simple",
           messageName: "SimpleMessage",
         },
@@ -245,7 +245,7 @@ describe("RequestMapper", () => {
         ),
       });
       await requestMapper.addRequest(request);
-      requestMapper.addHandler(baseHandler);
+      requestMapper.addRequestHandler({ requestHandler: baseHandler });
 
       const result = await requestMapper.handleRequest({
         url: "/simple/someUserId",
@@ -272,7 +272,7 @@ describe("RequestMapper", () => {
       const request: RequestSchema = {
         url: "/simple",
         method: HTTPMethods.POST,
-        payloadForRequestHandler: {
+        defaultPayloadForRequestHandler: {
           topic: "simple",
           messageName: "SimpleMessage",
         },

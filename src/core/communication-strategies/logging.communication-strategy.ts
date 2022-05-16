@@ -3,6 +3,14 @@ import { PayloadForRequestHandler } from "./payloads/payload-for-request-handler
 import { CommunicationStrategy } from "./communication-strategy";
 
 export class LoggingCommunicationStrategy implements CommunicationStrategy {
+  private readonly _name: string;
+  constructor(data?: { name?: string }) {
+    const { name } = data || {};
+    this._name = name || "Base";
+  }
+  get name() {
+    return this._name;
+  }
   async handleRequest(
     data: ParsedJSON,
     payload: PayloadForRequestHandler

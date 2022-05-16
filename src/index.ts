@@ -1,9 +1,5 @@
 import { LoggingCommunicationStrategy } from "./core/communication-strategies/logging.communication-strategy";
 import { fastify } from "fastify";
-import { kafkaFactory } from "./kafka/kafka.factory";
-import { MessageConsumer } from "./kafka/consumer.factory";
-import { MessageProducer } from "./kafka/message-producer";
-import { Message } from "./kafka/message";
 import { RequestMapper } from "./core/request-mapper";
 import { readFile } from "fs/promises";
 import path from "path";
@@ -18,7 +14,9 @@ const server = fastify();
 const requestMapper = new RequestMapper({
   pathToValidationSchemas: path.join(__dirname, "../schemas/validation"),
 });
-requestMapper.addHandler(new LoggingCommunicationStrategy());
+requestMapper.addRequestHandler({
+  requestHandler: new LoggingCommunicationStrategy(),
+});
 
 // server.get("/ping", async (request, reply) => {
 //   return { success: true, timestamp: Date.now() };
