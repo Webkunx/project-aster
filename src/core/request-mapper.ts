@@ -7,7 +7,11 @@ import {
   CommunicationStrategyName,
 } from "./communication-strategies/communication-strategy";
 import { ParsedJSON } from "./json";
-import { RequestHandlerSchema, RequestSchema } from "./request-schema";
+import {
+  ParamsToExtractFromResponse,
+  RequestHandlerSchema,
+  RequestSchema,
+} from "./request-schema";
 import { PayloadForRequestHandler } from "./communication-strategies/payloads/payload-for-request-handler";
 
 const ajv = new Ajv({ allErrors: true, coerceTypes: true });
@@ -76,6 +80,7 @@ export class RequestMapper {
       method,
       validationSchema,
       defaultPayloadForRequestHandler,
+      requestHandlersSchemas,
     } = request;
     const path = RequestMapper.parseUrl(url);
     let requestMapFromLastStep = this.requestMap;
@@ -93,6 +98,7 @@ export class RequestMapper {
           [method]: {
             defaultPayloadForRequestHandler,
             pathParams,
+            requestHandlersSchemas,
             validationFunction: validationSchema
               ? await this.getValidationFunction(validationSchema)
               : null,
@@ -182,18 +188,55 @@ export class RequestMapper {
   private getFunctionToHandleRequest(
     parsedRequest: ParsedRequest
   ): (data: ParsedJSON) => Promise<any> {
-    if (!this.defaultRequestHanlerId) {
-      throw new Error("no request handler");
+    console.log(parsedRequest.requestHandlersSchemas?.length);
+
+    if (!parsedRequest.requestHandlersSchemas?.length) {
+      const requestHandler =
+        this.requestHandlers?.[this.defaultRequestHanlerId || ""];
+      if (!requestHandler) {
+        throw new Error("no request handler");
+      }
+      return (data) => {
+        return requestHandler.handleRequest(
+          data,
+          parsedRequest.defaultPayloadForRequestHandler
+        );
+      };
     }
-    const requestHandler = this.requestHandlers[this.defaultRequestHanlerId];
-    if (!requestHandler) {
-      throw new Error("no request handler");
-    }
-    return (data) => {
-      return requestHandler.handleRequest(
-        data,
-        parsedRequest.defaultPayloadForRequestHandler
-      );
+
+    return async (data) => {
+      const requestHandlersSchemas =
+        parsedRequest.requestHandlersSchemas as RequestHandlerSchema[];
+      const handlersReponses: Record<string, ParsedJSON> = {};
+      let lastHandlerResponse = null;
+      const requestHandlersSchemasLength =
+        requestHandlersSchemas?.length as number;
+      for (let i = 0; i < requestHandlersSchemasLength; i++) {
+        const requestHandlerSchema = requestHandlersSchemas[i];
+        console.log(requestHandlerSchema);
+        const {
+          name,
+          shouldNotWaitForRequestCompletion,
+          paramsToExtract,
+          payloadForRequestHandler,
+        } = requestHandlerSchema;
+        const requestHandler = this.requestHandlers[name];
+        console.log(requestHandler);
+        const response = await requestHandler.handleRequest(
+          { data, ...handlersReponses },
+          payloadForRequestHandler
+        );
+        if (
+          paramsToExtract === ParamsToExtractFromResponse.AllParams &&
+          response.response
+        ) {
+          handlersReponses[name] = response.response;
+        }
+        if (requestHandlersSchemasLength - 1 === i) {
+          lastHandlerResponse = response;
+        }
+      }
+      return lastHandlerResponse;
     };
   }
 

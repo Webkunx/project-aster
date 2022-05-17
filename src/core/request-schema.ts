@@ -6,9 +6,10 @@ export enum ParamsToExtractFromResponse {
   NoParams,
 }
 // TODO: Add extraction for concrete params
+// TODO?: Request parralelism + merging???
 export interface RequestHandlerSchema {
   name: string;
-  shouldWait: boolean;
+  shouldNotWaitForRequestCompletion?: boolean;
   paramsToExtract: ParamsToExtractFromResponse;
   payloadForRequestHandler: PayloadForRequestHandler;
 }
@@ -18,5 +19,5 @@ export interface RequestSchema {
   method: HTTPMethods;
   validationSchema?: string;
   defaultPayloadForRequestHandler: PayloadForRequestHandler;
-  requestHandlers?: RequestHandlerSchema[];
+  requestHandlersSchemas?: RequestHandlerSchema[];
 }

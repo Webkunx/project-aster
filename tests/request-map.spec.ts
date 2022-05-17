@@ -1,7 +1,11 @@
+import { CommunicationStrategy } from "./../src/core/communication-strategies/communication-strategy";
 import path from "path";
 import { HTTPMethods } from "../src/core/http-methods";
 import { RequestMapper } from "../src/core/request-mapper";
-import { RequestSchema } from "../src/core/request-schema";
+import {
+  ParamsToExtractFromResponse,
+  RequestSchema,
+} from "../src/core/request-schema";
 import { BaseCommunicationStrategy } from "../src/core/communication-strategies/base.communication-strategy";
 
 const baseHandler = new BaseCommunicationStrategy();
@@ -267,7 +271,7 @@ describe("RequestMapper", () => {
       });
     });
   });
-  describe("Handler Validation", () => {
+  describe("Handler", () => {
     it("Throws an error if request handler were provided", async () => {
       const request: RequestSchema = {
         url: "/simple",
@@ -298,5 +302,63 @@ describe("RequestMapper", () => {
         expect((e as Error).message).toBe("no request handler");
       }
     });
+    it("Returns responses from last request handler", async () => {
+      const returns12Handler: CommunicationStrategy = {
+        name: "returns12",
+        handleRequest: async (data: any, payload: { topic: string }) => {
+          if (payload.topic === "someTopic") return { response: 12 };
+        },
+      } as any;
+      const returnsLovelyHandler: CommunicationStrategy = {
+        name: "returnsLovely",
+        handleRequest: async (
+          data: { returns12: number },
+          payload: { headers: string }
+        ) => {
+          if (payload.headers === "someHeaders" && data.returns12 === 12)
+            return { response: "lovely" };
+        },
+      } as any;
+      const request: RequestSchema = {
+        url: "/simple",
+        method: HTTPMethods.POST,
+        defaultPayloadForRequestHandler: {},
+        validationSchema: "simple",
+        requestHandlersSchemas: [
+          {
+            name: "returns12",
+            paramsToExtract: ParamsToExtractFromResponse.AllParams,
+            payloadForRequestHandler: { topic: "someTopic" },
+          },
+          {
+            name: "returnsLovely",
+            paramsToExtract: ParamsToExtractFromResponse.AllParams,
+            payloadForRequestHandler: { headers: "someHeaders" },
+          },
+        ],
+      };
+
+      const requestMapper = new RequestMapper({
+        pathToValidationSchemas: path.join(
+          __dirname,
+          "../tests/validationSchemas"
+        ),
+        requestHandlersToAdd: [
+          { requestHandler: returns12Handler },
+          { requestHandler: returnsLovelyHandler },
+        ],
+      });
+      await requestMapper.addRequest(request);
+
+      const result = await requestMapper.handleRequest({
+        url: "/simple",
+        method: HTTPMethods.POST,
+        data: { simple: 12 },
+      });
+
+      expect(result.response).toEqual("lovely");
+    });
+    it("Immediatly returns no content if only provided handler is async", () => {});
+    it("Throws an error with handler's response if sync handler returned code >= 400", () => {});
   });
 });
