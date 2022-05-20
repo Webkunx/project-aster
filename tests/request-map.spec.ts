@@ -358,7 +358,143 @@ describe("RequestMapper", () => {
 
       expect(result.response).toEqual("lovely");
     });
-    it("Immediatly returns no content if only provided handler is async", () => {});
-    it("Throws an error with handler's response if sync handler returned code >= 400", () => {});
+    it("Immediatly returns no content if only provided handler is async", async () => {
+      const returns12Handler: CommunicationStrategy = {
+        name: "returns12",
+        handleRequest: async (data: any, payload: { topic: string }) => {
+          if (payload.topic === "someTopic") return { response: 12 };
+        },
+      } as any;
+      const request: RequestSchema = {
+        url: "/simple",
+        method: HTTPMethods.POST,
+        defaultPayloadForRequestHandler: {},
+        validationSchema: "simple",
+        requestHandlersSchemas: [
+          {
+            name: "returns12",
+            paramsToExtract: ParamsToExtractFromResponse.AllParams,
+            payloadForRequestHandler: { topic: "someTopic" },
+            shouldNotWaitForRequestCompletion: true,
+          },
+        ],
+      };
+
+      const requestMapper = new RequestMapper({
+        pathToValidationSchemas: path.join(
+          __dirname,
+          "../tests/validationSchemas"
+        ),
+        requestHandlersToAdd: [{ requestHandler: returns12Handler }],
+      });
+      await requestMapper.addRequest(request);
+
+      const result = await requestMapper.handleRequest({
+        url: "/simple",
+        method: HTTPMethods.POST,
+        data: { simple: 12 },
+      });
+
+      expect(result.response).toEqual({ success: true });
+      expect(result.code).toEqual(204);
+    });
+    it("Immediatly returns no content if only provided handler is async and throwed error", async () => {
+      const returns12Handler: CommunicationStrategy = {
+        name: "returns12",
+        handleRequest: async (data: any, payload: { topic: string }) => {
+          throw new Error()
+        },
+      } as any;
+      const request: RequestSchema = {
+        url: "/simple",
+        method: HTTPMethods.POST,
+        defaultPayloadForRequestHandler: {},
+        validationSchema: "simple",
+        requestHandlersSchemas: [
+          {
+            name: "returns12",
+            paramsToExtract: ParamsToExtractFromResponse.AllParams,
+            payloadForRequestHandler: { topic: "someTopic" },
+            shouldNotWaitForRequestCompletion: true,
+          },
+        ],
+      };
+
+      const requestMapper = new RequestMapper({
+        pathToValidationSchemas: path.join(
+          __dirname,
+          "../tests/validationSchemas"
+        ),
+        requestHandlersToAdd: [{ requestHandler: returns12Handler }],
+      });
+      await requestMapper.addRequest(request);
+
+      const result = await requestMapper.handleRequest({
+        url: "/simple",
+        method: HTTPMethods.POST,
+        data: { simple: 12 },
+      });
+
+      expect(result.response).toEqual({ success: true });
+      expect(result.code).toEqual(204);
+    });
+    it("Returns code and response from not last handler if code >= 400", async () => {
+      let isLovelyCalled = false;
+      const returns12Handler: CommunicationStrategy = {
+        name: "returns12",
+        handleRequest: async (data: any, payload: { topic: string }) => {
+          if (payload.topic === "someTopic") return { response: 12, code: 422 };
+        },
+      } as any;
+      const returnsLovelyHandler: CommunicationStrategy = {
+        name: "returnsLovely",
+        handleRequest: async (
+          data: { returns12: number },
+          payload: { headers: string }
+        ) => {
+          isLovelyCalled = true;
+        },
+      } as any;
+      const request: RequestSchema = {
+        url: "/simple",
+        method: HTTPMethods.POST,
+        defaultPayloadForRequestHandler: {},
+        validationSchema: "simple",
+        requestHandlersSchemas: [
+          {
+            name: "returns12",
+            paramsToExtract: ParamsToExtractFromResponse.AllParams,
+            payloadForRequestHandler: { topic: "someTopic" },
+          },
+          {
+            name: "returnsLovely",
+            paramsToExtract: ParamsToExtractFromResponse.AllParams,
+            payloadForRequestHandler: { headers: "someHeaders" },
+          },
+        ],
+      };
+
+      const requestMapper = new RequestMapper({
+        pathToValidationSchemas: path.join(
+          __dirname,
+          "../tests/validationSchemas"
+        ),
+        requestHandlersToAdd: [
+          { requestHandler: returns12Handler },
+          { requestHandler: returnsLovelyHandler },
+        ],
+      });
+      await requestMapper.addRequest(request);
+
+      const result = await requestMapper.handleRequest({
+        url: "/simple",
+        method: HTTPMethods.POST,
+        data: { simple: 12 },
+      });
+
+      expect(result.response).toEqual(12);
+      expect(result.code).toEqual(422);
+      expect(isLovelyCalled).toBeFalsy;
+    });
   });
 });

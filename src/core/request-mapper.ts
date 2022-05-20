@@ -5,6 +5,7 @@ import { HTTPMethods } from "./http-methods";
 import {
   CommunicationStrategy,
   CommunicationStrategyName,
+  HandlerResponse,
 } from "./communication-strategies/communication-strategy";
 import { ParsedJSON } from "./json";
 import {
@@ -190,7 +191,7 @@ export class RequestMapper {
   ): (data: ParsedJSON) => Promise<any> {
     if (!parsedRequest.requestHandlersSchemas?.length) {
       const requestHandler =
-        this.requestHandlers?.[this.defaultRequestHanlerId || ""];
+        this.requestHandlers[this.defaultRequestHanlerId as string];
       if (!requestHandler) {
         throw new Error("no request handler");
       }
@@ -206,9 +207,12 @@ export class RequestMapper {
       const requestHandlersSchemas =
         parsedRequest.requestHandlersSchemas as RequestHandlerSchema[];
       const handlersReponses: Record<string, ParsedJSON> = {};
-      let lastHandlerResponse = null;
+      let lastHandlerResponse: HandlerResponse = {
+        response: { success: true },
+        code: 204,
+      };
       const requestHandlersSchemasLength =
-        requestHandlersSchemas?.length as number;
+        requestHandlersSchemas.length as number;
       for (let i = 0; i < requestHandlersSchemasLength; i++) {
         const requestHandlerSchema = requestHandlersSchemas[i];
         const {
@@ -218,10 +222,22 @@ export class RequestMapper {
           payloadForRequestHandler,
         } = requestHandlerSchema;
         const requestHandler = this.requestHandlers[name];
+        if (shouldNotWaitForRequestCompletion) {
+          requestHandler
+            .handleRequest(
+              { data, ...handlersReponses },
+              payloadForRequestHandler
+            )
+            .catch((el) => console.log("Async handler throwed error"));
+          continue;
+        }
         const response = await requestHandler.handleRequest(
           { data, ...handlersReponses },
           payloadForRequestHandler
         );
+        if (response.code || 0 >= 400) {
+          return response;
+        }
         if (
           paramsToExtract === ParamsToExtractFromResponse.AllParams &&
           response.response
@@ -230,6 +246,9 @@ export class RequestMapper {
         }
         if (requestHandlersSchemasLength - 1 === i) {
           lastHandlerResponse = response;
+          if (!lastHandlerResponse.code) {
+            lastHandlerResponse.code = 200;
+          }
         }
       }
       return lastHandlerResponse;
