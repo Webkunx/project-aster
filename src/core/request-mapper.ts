@@ -2,10 +2,18 @@ import path from "path";
 import Ajv from "ajv";
 import { readFile } from "fs/promises";
 import { HTTPMethods } from "./http-methods";
-import { CommunicationStrategy } from "./communication-strategies/communication-strategy";
+import {
+  CommunicationStrategy,
+  CommunicationStrategyName,
+  HandlerResponse,
+} from "./communication-strategies/communication-strategy";
 import { ParsedJSON } from "./json";
+import {
+  ParamsToExtractFromResponse,
+  RequestHandlerSchema,
+  RequestSchema,
+} from "./request-schema";
 import { PayloadForRequestHandler } from "./communication-strategies/payloads/payload-for-request-handler";
-import { RequestSchema } from "./request-schema";
 
 const ajv = new Ajv({ allErrors: true, coerceTypes: true });
 
@@ -15,14 +23,13 @@ type ValidationFunction = (data: any) => {
 };
 
 interface RequestMapLeaf {
-  payloadForRequestHandler: PayloadForRequestHandler;
   pathParams: string[];
   validationFunction: ValidationFunction;
+  requestHandlersSchemas?: RequestHandlerSchema[];
+  defaultPayloadForRequestHandler: PayloadForRequestHandler;
 }
-interface ParsedRequest {
-  payloadForRequestHandler: PayloadForRequestHandler;
+interface ParsedRequest extends Omit<RequestMapLeaf, "pathParams"> {
   params: Record<string, string>;
-  validationFunction: ValidationFunction;
 }
 
 type RequestMapLeafByMethod = {
@@ -36,19 +43,32 @@ interface IncomingRequest {
   method: HTTPMethods;
   data: ParsedJSON;
 }
+interface RequestHandlerToAdd {
+  requestHandler: CommunicationStrategy;
+  isDefault?: boolean;
+}
 
 export class RequestMapper {
   private readonly pathToValidationSchemas: string;
-  private requestHandler: CommunicationStrategy | undefined;
+  private requestHandlers: Record<
+    CommunicationStrategyName,
+    CommunicationStrategy
+  > = {};
+  private defaultRequestHanlerId: string | undefined;
   private readonly requestMap: RequestMap;
 
   constructor({
     pathToValidationSchemas,
+    requestHandlersToAdd,
   }: {
     pathToValidationSchemas: string;
+    requestHandlersToAdd?: RequestHandlerToAdd[];
   }) {
     this.pathToValidationSchemas = pathToValidationSchemas;
     this.requestMap = {};
+    if (requestHandlersToAdd?.length) {
+      this.addRequestHandlers(requestHandlersToAdd);
+    }
   }
 
   private static parseUrl(url: string) {
@@ -56,7 +76,13 @@ export class RequestMapper {
   }
 
   async addRequest(request: RequestSchema): Promise<void> {
-    const { url, method, validationSchema, payloadForRequestHandler } = request;
+    const {
+      url,
+      method,
+      validationSchema,
+      defaultPayloadForRequestHandler,
+      requestHandlersSchemas,
+    } = request;
     const path = RequestMapper.parseUrl(url);
     let requestMapFromLastStep = this.requestMap;
     const pathParams = [];
@@ -71,8 +97,9 @@ export class RequestMapper {
       if (i === path.length - 1) {
         requestMapFromLastStep[pathPart] = {
           [method]: {
-            payloadForRequestHandler,
+            defaultPayloadForRequestHandler,
             pathParams,
+            requestHandlersSchemas,
             validationFunction: validationSchema
               ? await this.getValidationFunction(validationSchema)
               : null,
@@ -107,8 +134,24 @@ export class RequestMapper {
     };
   }
 
-  addHandler(requestHandler: CommunicationStrategy) {
-    this.requestHandler = requestHandler;
+  addRequestHandlers(requestHandlersToAdd: RequestHandlerToAdd[]) {
+    requestHandlersToAdd.forEach((value) => {
+      this.addRequestHandler(value);
+    });
+  }
+
+  addRequestHandler({ requestHandler, isDefault }: RequestHandlerToAdd) {
+    this.requestHandlers[requestHandler.name] = requestHandler;
+    this.setDefaultRequestHanlerId({ requestHandler, isDefault });
+  }
+
+  private setDefaultRequestHanlerId({
+    requestHandler,
+    isDefault,
+  }: RequestHandlerToAdd) {
+    if (isDefault || !this.defaultRequestHanlerId) {
+      this.defaultRequestHanlerId = requestHandler.name;
+    }
   }
 
   private getParsedRequest(request: IncomingRequest): ParsedRequest {
@@ -143,22 +186,85 @@ export class RequestMapper {
     };
   }
 
-  async handleRequest(request: IncomingRequest): Promise<any> {
-    if (!this.requestHandler) {
-      throw new Error("no request handler");
+  private getFunctionToHandleRequest(
+    parsedRequest: ParsedRequest
+  ): (data: ParsedJSON) => Promise<any> {
+    if (!parsedRequest.requestHandlersSchemas?.length) {
+      const requestHandler =
+        this.requestHandlers[this.defaultRequestHanlerId as string];
+      if (!requestHandler) {
+        throw new Error("no request handler");
+      }
+      return (data) => {
+        return requestHandler.handleRequest(
+          data,
+          parsedRequest.defaultPayloadForRequestHandler
+        );
+      };
     }
+
+    return async (data) => {
+      const requestHandlersSchemas =
+        parsedRequest.requestHandlersSchemas as RequestHandlerSchema[];
+      const handlersReponses: Record<string, ParsedJSON> = {};
+      let lastHandlerResponse: HandlerResponse = {
+        response: { success: true },
+        code: 204,
+      };
+      const requestHandlersSchemasLength =
+        requestHandlersSchemas.length as number;
+      for (let i = 0; i < requestHandlersSchemasLength; i++) {
+        const requestHandlerSchema = requestHandlersSchemas[i];
+        const {
+          name,
+          shouldNotWaitForRequestCompletion,
+          paramsToExtract,
+          payloadForRequestHandler,
+        } = requestHandlerSchema;
+        const requestHandler = this.requestHandlers[name];
+        if (shouldNotWaitForRequestCompletion) {
+          requestHandler
+            .handleRequest(
+              { data, ...handlersReponses },
+              payloadForRequestHandler
+            )
+            .catch((el) => console.log("Async handler throwed error"));
+          continue;
+        }
+        const response = await requestHandler.handleRequest(
+          { data, ...handlersReponses },
+          payloadForRequestHandler
+        );
+        if (response.code || 0 >= 400) {
+          return response;
+        }
+        if (
+          paramsToExtract === ParamsToExtractFromResponse.AllParams &&
+          response.response
+        ) {
+          handlersReponses[name] = response.response;
+        }
+        if (requestHandlersSchemasLength - 1 === i) {
+          lastHandlerResponse = response;
+          if (!lastHandlerResponse.code) {
+            lastHandlerResponse.code = 200;
+          }
+        }
+      }
+      return lastHandlerResponse;
+    };
+  }
+
+  // TODO: add proper error handling
+  async handleRequest(request: IncomingRequest): Promise<any> {
     const parsedRequest = this.getParsedRequest(request);
-    const { validationFunction, params, payloadForRequestHandler } =
-      parsedRequest;
+    const { validationFunction, params } = parsedRequest;
+    const handleRequest = this.getFunctionToHandleRequest(parsedRequest);
+
     const data = { ...(request.data as Record<string, unknown>), params };
 
     if (!validationFunction) {
-      console.log("No validation func");
-
-      return await this.requestHandler.handleRequest(
-        data,
-        payloadForRequestHandler
-      );
+      return await handleRequest(data);
     }
     const { success, errors } = validationFunction(data);
 
@@ -168,9 +274,6 @@ export class RequestMapper {
 
       throw new Error("Invalid request");
     }
-    return await this.requestHandler.handleRequest(
-      data,
-      payloadForRequestHandler
-    );
+    return await handleRequest(data);
   }
 }

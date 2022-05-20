@@ -1,7 +1,11 @@
+import { CommunicationStrategy } from "./../src/core/communication-strategies/communication-strategy";
 import path from "path";
 import { HTTPMethods } from "../src/core/http-methods";
 import { RequestMapper } from "../src/core/request-mapper";
-import { RequestSchema } from "../src/core/request-schema";
+import {
+  ParamsToExtractFromResponse,
+  RequestSchema,
+} from "../src/core/request-schema";
 import { BaseCommunicationStrategy } from "../src/core/communication-strategies/base.communication-strategy";
 
 const baseHandler = new BaseCommunicationStrategy();
@@ -18,7 +22,7 @@ describe("RequestMapper", () => {
       const request: RequestSchema = {
         url: "/simple",
         method: HTTPMethods.POST,
-        payloadForRequestHandler: {
+        defaultPayloadForRequestHandler: {
           topic: "simple",
           messageName: "SimpleMessage",
         },
@@ -32,7 +36,7 @@ describe("RequestMapper", () => {
         ),
       });
       await requestMapper.addRequest(request);
-      requestMapper.addHandler(baseHandler);
+      requestMapper.addRequestHandler({ requestHandler: baseHandler });
 
       const result = await requestMapper.handleRequest({
         url: "/simple",
@@ -52,7 +56,7 @@ describe("RequestMapper", () => {
       const request: RequestSchema = {
         url: "/something/very/hard",
         method: HTTPMethods.POST,
-        payloadForRequestHandler: {
+        defaultPayloadForRequestHandler: {
           topic: "simple",
           messageName: "SimpleMessage",
         },
@@ -61,7 +65,7 @@ describe("RequestMapper", () => {
       const request2 = JSON.parse(JSON.stringify(request)) as RequestSchema;
       request2.url = "/something/very/hard/yes";
       request2.method = HTTPMethods.DELETE;
-      request2.payloadForRequestHandler = {
+      request2.defaultPayloadForRequestHandler = {
         messageName: "UniqueMessage",
         topic: "simple",
       };
@@ -77,7 +81,7 @@ describe("RequestMapper", () => {
       await requestMapper.addRequest(request);
       await requestMapper.addRequest(request2);
       await requestMapper.addRequest(request3);
-      requestMapper.addHandler(baseHandler);
+      requestMapper.addRequestHandler({ requestHandler: baseHandler });
 
       const result = await requestMapper.handleRequest({
         url: "/something/very/hard/yes",
@@ -100,7 +104,7 @@ describe("RequestMapper", () => {
       const request: RequestSchema = {
         url: "/simple",
         method: HTTPMethods.POST,
-        payloadForRequestHandler: {
+        defaultPayloadForRequestHandler: {
           topic: "simple",
           messageName: "SimpleMessage",
         },
@@ -114,7 +118,7 @@ describe("RequestMapper", () => {
         ),
       });
       await requestMapper.addRequest(request);
-      requestMapper.addHandler(baseHandler);
+      requestMapper.addRequestHandler({ requestHandler: baseHandler });
 
       try {
         await requestMapper.handleRequest({
@@ -131,7 +135,7 @@ describe("RequestMapper", () => {
       const request: RequestSchema = {
         url: "/simple",
         method: HTTPMethods.POST,
-        payloadForRequestHandler: {
+        defaultPayloadForRequestHandler: {
           topic: "simple",
           messageName: "SimpleMessage",
         },
@@ -145,7 +149,7 @@ describe("RequestMapper", () => {
         ),
       });
       await requestMapper.addRequest(request);
-      requestMapper.addHandler(baseHandler);
+      requestMapper.addRequestHandler({ requestHandler: baseHandler });
 
       try {
         await requestMapper.handleRequest({
@@ -164,7 +168,7 @@ describe("RequestMapper", () => {
       const request: RequestSchema = {
         url: "/simple",
         method: HTTPMethods.POST,
-        payloadForRequestHandler: {
+        defaultPayloadForRequestHandler: {
           topic: "simple",
           messageName: "SimpleMessage",
         },
@@ -177,7 +181,7 @@ describe("RequestMapper", () => {
         ),
       });
       await requestMapper.addRequest(request);
-      requestMapper.addHandler(baseHandler);
+      requestMapper.addRequestHandler({ requestHandler: baseHandler });
 
       const result = await requestMapper.handleRequest({
         url: "/simple",
@@ -198,7 +202,7 @@ describe("RequestMapper", () => {
       const request: RequestSchema = {
         url: "/simple",
         method: HTTPMethods.POST,
-        payloadForRequestHandler: {
+        defaultPayloadForRequestHandler: {
           topic: "simple",
           messageName: "SimpleMessage",
         },
@@ -212,7 +216,7 @@ describe("RequestMapper", () => {
         ),
       });
       await requestMapper.addRequest(request);
-      requestMapper.addHandler(baseHandler);
+      requestMapper.addRequestHandler({ requestHandler: baseHandler });
 
       try {
         await requestMapper.handleRequest({
@@ -231,7 +235,7 @@ describe("RequestMapper", () => {
       const request: RequestSchema = {
         url: "/simple/:id",
         method: HTTPMethods.POST,
-        payloadForRequestHandler: {
+        defaultPayloadForRequestHandler: {
           topic: "simple",
           messageName: "SimpleMessage",
         },
@@ -245,7 +249,7 @@ describe("RequestMapper", () => {
         ),
       });
       await requestMapper.addRequest(request);
-      requestMapper.addHandler(baseHandler);
+      requestMapper.addRequestHandler({ requestHandler: baseHandler });
 
       const result = await requestMapper.handleRequest({
         url: "/simple/someUserId",
@@ -267,12 +271,12 @@ describe("RequestMapper", () => {
       });
     });
   });
-  describe("Handler Validation", () => {
+  describe("Handler", () => {
     it("Throws an error if request handler were provided", async () => {
       const request: RequestSchema = {
         url: "/simple",
         method: HTTPMethods.POST,
-        payloadForRequestHandler: {
+        defaultPayloadForRequestHandler: {
           topic: "simple",
           messageName: "SimpleMessage",
         },
@@ -297,6 +301,200 @@ describe("RequestMapper", () => {
       } catch (e) {
         expect((e as Error).message).toBe("no request handler");
       }
+    });
+    it("Returns responses from last request handler", async () => {
+      const returns12Handler: CommunicationStrategy = {
+        name: "returns12",
+        handleRequest: async (data: any, payload: { topic: string }) => {
+          if (payload.topic === "someTopic") return { response: 12 };
+        },
+      } as any;
+      const returnsLovelyHandler: CommunicationStrategy = {
+        name: "returnsLovely",
+        handleRequest: async (
+          data: { returns12: number },
+          payload: { headers: string }
+        ) => {
+          if (payload.headers === "someHeaders" && data.returns12 === 12)
+            return { response: "lovely" };
+        },
+      } as any;
+      const request: RequestSchema = {
+        url: "/simple",
+        method: HTTPMethods.POST,
+        defaultPayloadForRequestHandler: {},
+        validationSchema: "simple",
+        requestHandlersSchemas: [
+          {
+            name: "returns12",
+            paramsToExtract: ParamsToExtractFromResponse.AllParams,
+            payloadForRequestHandler: { topic: "someTopic" },
+          },
+          {
+            name: "returnsLovely",
+            paramsToExtract: ParamsToExtractFromResponse.AllParams,
+            payloadForRequestHandler: { headers: "someHeaders" },
+          },
+        ],
+      };
+
+      const requestMapper = new RequestMapper({
+        pathToValidationSchemas: path.join(
+          __dirname,
+          "../tests/validationSchemas"
+        ),
+        requestHandlersToAdd: [
+          { requestHandler: returns12Handler },
+          { requestHandler: returnsLovelyHandler },
+        ],
+      });
+      await requestMapper.addRequest(request);
+
+      const result = await requestMapper.handleRequest({
+        url: "/simple",
+        method: HTTPMethods.POST,
+        data: { simple: 12 },
+      });
+
+      expect(result.response).toEqual("lovely");
+    });
+    it("Immediatly returns no content if only provided handler is async", async () => {
+      const returns12Handler: CommunicationStrategy = {
+        name: "returns12",
+        handleRequest: async (data: any, payload: { topic: string }) => {
+          if (payload.topic === "someTopic") return { response: 12 };
+        },
+      } as any;
+      const request: RequestSchema = {
+        url: "/simple",
+        method: HTTPMethods.POST,
+        defaultPayloadForRequestHandler: {},
+        validationSchema: "simple",
+        requestHandlersSchemas: [
+          {
+            name: "returns12",
+            paramsToExtract: ParamsToExtractFromResponse.AllParams,
+            payloadForRequestHandler: { topic: "someTopic" },
+            shouldNotWaitForRequestCompletion: true,
+          },
+        ],
+      };
+
+      const requestMapper = new RequestMapper({
+        pathToValidationSchemas: path.join(
+          __dirname,
+          "../tests/validationSchemas"
+        ),
+        requestHandlersToAdd: [{ requestHandler: returns12Handler }],
+      });
+      await requestMapper.addRequest(request);
+
+      const result = await requestMapper.handleRequest({
+        url: "/simple",
+        method: HTTPMethods.POST,
+        data: { simple: 12 },
+      });
+
+      expect(result.response).toEqual({ success: true });
+      expect(result.code).toEqual(204);
+    });
+    it("Immediatly returns no content if only provided handler is async and throwed error", async () => {
+      const returns12Handler: CommunicationStrategy = {
+        name: "returns12",
+        handleRequest: async (data: any, payload: { topic: string }) => {
+          throw new Error()
+        },
+      } as any;
+      const request: RequestSchema = {
+        url: "/simple",
+        method: HTTPMethods.POST,
+        defaultPayloadForRequestHandler: {},
+        validationSchema: "simple",
+        requestHandlersSchemas: [
+          {
+            name: "returns12",
+            paramsToExtract: ParamsToExtractFromResponse.AllParams,
+            payloadForRequestHandler: { topic: "someTopic" },
+            shouldNotWaitForRequestCompletion: true,
+          },
+        ],
+      };
+
+      const requestMapper = new RequestMapper({
+        pathToValidationSchemas: path.join(
+          __dirname,
+          "../tests/validationSchemas"
+        ),
+        requestHandlersToAdd: [{ requestHandler: returns12Handler }],
+      });
+      await requestMapper.addRequest(request);
+
+      const result = await requestMapper.handleRequest({
+        url: "/simple",
+        method: HTTPMethods.POST,
+        data: { simple: 12 },
+      });
+
+      expect(result.response).toEqual({ success: true });
+      expect(result.code).toEqual(204);
+    });
+    it("Returns code and response from not last handler if code >= 400", async () => {
+      let isLovelyCalled = false;
+      const returns12Handler: CommunicationStrategy = {
+        name: "returns12",
+        handleRequest: async (data: any, payload: { topic: string }) => {
+          if (payload.topic === "someTopic") return { response: 12, code: 422 };
+        },
+      } as any;
+      const returnsLovelyHandler: CommunicationStrategy = {
+        name: "returnsLovely",
+        handleRequest: async (
+          data: { returns12: number },
+          payload: { headers: string }
+        ) => {
+          isLovelyCalled = true;
+        },
+      } as any;
+      const request: RequestSchema = {
+        url: "/simple",
+        method: HTTPMethods.POST,
+        defaultPayloadForRequestHandler: {},
+        validationSchema: "simple",
+        requestHandlersSchemas: [
+          {
+            name: "returns12",
+            paramsToExtract: ParamsToExtractFromResponse.AllParams,
+            payloadForRequestHandler: { topic: "someTopic" },
+          },
+          {
+            name: "returnsLovely",
+            paramsToExtract: ParamsToExtractFromResponse.AllParams,
+            payloadForRequestHandler: { headers: "someHeaders" },
+          },
+        ],
+      };
+
+      const requestMapper = new RequestMapper({
+        pathToValidationSchemas: path.join(
+          __dirname,
+          "../tests/validationSchemas"
+        ),
+        requestHandlersToAdd: [
+          { requestHandler: returns12Handler },
+          { requestHandler: returnsLovelyHandler },
+        ],
+      });
+      await requestMapper.addRequest(request);
+
+      const result = await requestMapper.handleRequest({
+        url: "/simple",
+        method: HTTPMethods.POST,
+        data: { simple: 12 },
+      });
+
+      expect(result.response).toEqual(12);
+      expect(result.code).toEqual(422);
+      expect(isLovelyCalled).toBeFalsy;
     });
   });
 });
