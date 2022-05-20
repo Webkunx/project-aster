@@ -11,8 +11,6 @@ import { BaseCommunicationStrategy } from "../src/core/communication-strategies/
 const baseHandler = new BaseCommunicationStrategy();
 
 // STEPS
-// multiple handlers
-// update request
 // proper error handling
 // proper logger
 // part key
@@ -49,6 +47,47 @@ describe("RequestMapper", () => {
         payload: {
           topic: "simple",
           messageName: "SimpleMessage",
+        },
+      });
+    });
+    it("Updates simple request in map and handles it correctly", async () => {
+      const request: RequestSchema = {
+        url: "/simple",
+        method: HTTPMethods.POST,
+        defaultPayloadForRequestHandler: {
+          topic: "simple",
+          messageName: "SimpleMessage",
+        },
+        validationSchema: "simple",
+      };
+      const request2: RequestSchema = {
+        url: "/simple",
+        method: HTTPMethods.POST,
+        defaultPayloadForRequestHandler: {
+          topic: "simple2",
+        }
+      };
+
+      const requestMapper = new RequestMapper({
+        pathToValidationSchemas: path.join(
+          __dirname,
+          "../tests/validationSchemas"
+        ),
+      });
+      await requestMapper.addRequest(request);
+      await requestMapper.addRequest(request2);
+      requestMapper.addRequestHandler({ requestHandler: baseHandler });
+
+      const result = await requestMapper.handleRequest({
+        url: "/simple",
+        method: HTTPMethods.POST,
+        data: { simple: 'like' },
+      });
+
+      expect(result.response).toEqual({
+        data: { simple: 'like', params: {} },
+        payload: {
+          topic: "simple2",
         },
       });
     });
