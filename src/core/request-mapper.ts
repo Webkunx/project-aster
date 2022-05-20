@@ -188,8 +188,6 @@ export class RequestMapper {
   private getFunctionToHandleRequest(
     parsedRequest: ParsedRequest
   ): (data: ParsedJSON) => Promise<any> {
-    console.log(parsedRequest.requestHandlersSchemas?.length);
-
     if (!parsedRequest.requestHandlersSchemas?.length) {
       const requestHandler =
         this.requestHandlers?.[this.defaultRequestHanlerId || ""];
@@ -213,7 +211,6 @@ export class RequestMapper {
         requestHandlersSchemas?.length as number;
       for (let i = 0; i < requestHandlersSchemasLength; i++) {
         const requestHandlerSchema = requestHandlersSchemas[i];
-        console.log(requestHandlerSchema);
         const {
           name,
           shouldNotWaitForRequestCompletion,
@@ -221,7 +218,6 @@ export class RequestMapper {
           payloadForRequestHandler,
         } = requestHandlerSchema;
         const requestHandler = this.requestHandlers[name];
-        console.log(requestHandler);
         const response = await requestHandler.handleRequest(
           { data, ...handlersReponses },
           payloadForRequestHandler
@@ -249,8 +245,6 @@ export class RequestMapper {
     const data = { ...(request.data as Record<string, unknown>), params };
 
     if (!validationFunction) {
-      console.log("No validation func");
-
       return await handleRequest(data);
     }
     const { success, errors } = validationFunction(data);
