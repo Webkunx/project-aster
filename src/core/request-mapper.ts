@@ -5,7 +5,6 @@ import { HTTPMethods } from "./http-methods";
 import {
   CommunicationStrategy,
   CommunicationStrategyName,
-  HandlerResponse,
 } from "./communication-strategies/communication-strategy";
 import { ParsedJSON } from "./json";
 import {
@@ -13,14 +12,16 @@ import {
   RequestHandlerSchema,
   RequestSchema,
 } from "./request-schema";
+import { Response } from "./response";
 import { PayloadForRequestHandler } from "./communication-strategies/payloads/payload-for-request-handler";
 
 const ajv = new Ajv({ allErrors: true, coerceTypes: true });
 
-type ValidationFunction = (data: any) => {
-  success: boolean;
-  errors?: string[];
-};
+type ValidationFunction = (data: any) =>
+  | {
+      success: true;
+    }
+  | { success: false; errors: string[] };
 
 interface RequestMapLeaf {
   pathParams: string[];
@@ -154,7 +155,7 @@ export class RequestMapper {
     }
   }
 
-  private getParsedRequest(request: IncomingRequest): ParsedRequest {
+  private getParsedRequest(request: IncomingRequest): ParsedRequest | null {
     const { url, method } = request;
     const path = RequestMapper.parseUrl(url);
     let requestMap: RequestMap | RequestMapLeafByMethod = this.requestMap;
@@ -167,12 +168,12 @@ export class RequestMapper {
       }
       requestMap = newStepRequestMap;
       if (!requestMap) {
-        throw new Error("Unknown request");
+        return null;
       }
     }
     const requestMapLeaf = (requestMap as RequestMapLeafByMethod)[method];
     if (!requestMapLeaf) {
-      throw new Error("Unknown request");
+      return null;
     }
     return {
       ...requestMapLeaf,
@@ -188,12 +189,12 @@ export class RequestMapper {
 
   private getFunctionToHandleRequest(
     parsedRequest: ParsedRequest
-  ): (data: ParsedJSON) => Promise<any> {
+  ): ((data: ParsedJSON) => Promise<Response>) | null {
     if (!parsedRequest.requestHandlersSchemas?.length) {
       const requestHandler =
         this.requestHandlers[this.defaultRequestHanlerId as string];
       if (!requestHandler) {
-        throw new Error("no request handler");
+        return null;
       }
       return (data) => {
         return requestHandler.handleRequest(
@@ -207,10 +208,7 @@ export class RequestMapper {
       const requestHandlersSchemas =
         parsedRequest.requestHandlersSchemas as RequestHandlerSchema[];
       const handlersReponses: Record<string, ParsedJSON> = {};
-      let lastHandlerResponse: HandlerResponse = {
-        response: { success: true },
-        code: 204,
-      };
+      let lastHandlerResponse = Response.SuccessResponse({});
       const requestHandlersSchemasLength =
         requestHandlersSchemas.length as number;
       for (let i = 0; i < requestHandlersSchemasLength; i++) {
@@ -240,15 +238,12 @@ export class RequestMapper {
         }
         if (
           paramsToExtract === ParamsToExtractFromResponse.AllParams &&
-          response.response
+          response.body
         ) {
-          handlersReponses[name] = response.response;
+          handlersReponses[name] = response.body;
         }
         if (requestHandlersSchemasLength - 1 === i) {
           lastHandlerResponse = response;
-          if (!lastHandlerResponse.code) {
-            lastHandlerResponse.code = 200;
-          }
         }
       }
       return lastHandlerResponse;
@@ -256,23 +251,26 @@ export class RequestMapper {
   }
 
   // TODO: add proper error handling
-  async handleRequest(request: IncomingRequest): Promise<any> {
+  async handleRequest(request: IncomingRequest): Promise<Response> {
     const parsedRequest = this.getParsedRequest(request);
+    if (!parsedRequest) {
+      return Response.UnknownRequestResponse();
+    }
     const { validationFunction, params } = parsedRequest;
     const handleRequest = this.getFunctionToHandleRequest(parsedRequest);
+    if (!handleRequest) {
+      return Response.InternalErrorResponse();
+    }
 
     const data = { ...(request.data as Record<string, unknown>), params };
 
     if (!validationFunction) {
       return await handleRequest(data);
     }
-    const { success, errors } = validationFunction(data);
+    const validationResult = validationFunction(data);
 
-    if (!success) {
-      // TODO: change to proper error handling
-      console.log(errors);
-
-      throw new Error("Invalid request");
+    if (!validationResult.success) {
+      return Response.RequestWithInvalidBodyResponse(validationResult.errors);
     }
     return await handleRequest(data);
   }

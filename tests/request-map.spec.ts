@@ -13,7 +13,6 @@ const baseHandler = new BaseCommunicationStrategy();
 // STEPS
 // proper error handling
 // proper logger
-// part key
 describe("RequestMapper", () => {
   describe("Routing", () => {
     it("Adds simple request to map and handles it correctly", async () => {
@@ -42,7 +41,7 @@ describe("RequestMapper", () => {
         data: { simple: 12 },
       });
 
-      expect(result.response).toEqual({
+      expect(result.body).toEqual({
         data: { simple: 12, params: {} },
         payload: {
           topic: "simple",
@@ -65,7 +64,7 @@ describe("RequestMapper", () => {
         method: HTTPMethods.POST,
         defaultPayloadForRequestHandler: {
           topic: "simple2",
-        }
+        },
       };
 
       const requestMapper = new RequestMapper({
@@ -81,11 +80,11 @@ describe("RequestMapper", () => {
       const result = await requestMapper.handleRequest({
         url: "/simple",
         method: HTTPMethods.POST,
-        data: { simple: 'like' },
+        data: { simple: "like" },
       });
 
-      expect(result.response).toEqual({
-        data: { simple: 'like', params: {} },
+      expect(result.body).toEqual({
+        data: { simple: "like", params: {} },
         payload: {
           topic: "simple2",
         },
@@ -128,7 +127,7 @@ describe("RequestMapper", () => {
         data: { simple: 12 },
       });
 
-      expect(result.response).toEqual({
+      expect(result.body).toEqual({
         payload: {
           topic: "simple",
           messageName: "UniqueMessage",
@@ -139,7 +138,7 @@ describe("RequestMapper", () => {
         },
       });
     });
-    it("Throws an error if unknown url", async () => {
+    it("Return Unknown Response if unknown url", async () => {
       const request: RequestSchema = {
         url: "/simple",
         method: HTTPMethods.POST,
@@ -159,18 +158,17 @@ describe("RequestMapper", () => {
       await requestMapper.addRequest(request);
       requestMapper.addRequestHandler({ requestHandler: baseHandler });
 
-      try {
-        await requestMapper.handleRequest({
-          url: "/who-are-you",
-          method: HTTPMethods.POST,
-          data: { simple: "asdasd" },
-        });
-        expect(false).toBeTruthy();
-      } catch (e) {
-        expect((e as Error).message).toBe("Unknown request");
-      }
+      const result = await requestMapper.handleRequest({
+        url: "/who-are-you",
+        method: HTTPMethods.POST,
+        data: { simple: "asdasd" },
+      });
+      expect(result).toEqual({
+        code: 404,
+        body: { errors: ["Unknown request"], success: false },
+      });
     });
-    it("Throws an error if unknown method", async () => {
+    it("Returns Unknown Response if method is not supported", async () => {
       const request: RequestSchema = {
         url: "/simple",
         method: HTTPMethods.POST,
@@ -190,16 +188,15 @@ describe("RequestMapper", () => {
       await requestMapper.addRequest(request);
       requestMapper.addRequestHandler({ requestHandler: baseHandler });
 
-      try {
-        await requestMapper.handleRequest({
-          url: "/simple",
-          method: HTTPMethods.DELETE,
-          data: { simple: "asdasd" },
-        });
-        expect(false).toBeTruthy();
-      } catch (e) {
-        expect((e as Error).message).toBe("Unknown request");
-      }
+      const result = await requestMapper.handleRequest({
+        url: "/simple",
+        method: HTTPMethods.DELETE,
+        data: { simple: "asdasd" },
+      });
+      expect(result).toEqual({
+        code: 404,
+        body: { errors: ["Unknown request"], success: false },
+      });
     });
   });
   describe("Request Validation", () => {
@@ -228,7 +225,7 @@ describe("RequestMapper", () => {
         data: { simple: "chill" },
       });
 
-      expect(result.response).toEqual({
+      expect(result.body).toEqual({
         data: { simple: "chill", params: {} },
         payload: {
           topic: "simple",
@@ -257,16 +254,18 @@ describe("RequestMapper", () => {
       await requestMapper.addRequest(request);
       requestMapper.addRequestHandler({ requestHandler: baseHandler });
 
-      try {
-        await requestMapper.handleRequest({
-          url: "/simple",
-          method: HTTPMethods.POST,
-          data: { simple: "asdasd" },
-        });
-        expect(false).toBeTruthy();
-      } catch (e) {
-        expect((e as Error).message).toBe("Invalid request");
-      }
+      const result = await requestMapper.handleRequest({
+        url: "/simple",
+        method: HTTPMethods.POST,
+        data: { simple: "asdasd" },
+      });
+      expect(result).toEqual({
+        code: 422,
+        body: {
+          errors: ["parameter: .simple should be integer"],
+          success: false,
+        },
+      });
     });
   });
   describe("Request Params", () => {
@@ -296,7 +295,7 @@ describe("RequestMapper", () => {
         data: { simple: 12 },
       });
 
-      expect(result.response).toEqual({
+      expect(result.body).toEqual({
         payload: {
           topic: "simple",
           messageName: "SimpleMessage",
@@ -311,7 +310,7 @@ describe("RequestMapper", () => {
     });
   });
   describe("Handler", () => {
-    it("Throws an error if request handler were provided", async () => {
+    it("Returns internal error response if no handler", async () => {
       const request: RequestSchema = {
         url: "/simple",
         method: HTTPMethods.POST,
@@ -330,22 +329,21 @@ describe("RequestMapper", () => {
       });
       await requestMapper.addRequest(request);
 
-      try {
-        await requestMapper.handleRequest({
-          url: "/simple",
-          method: HTTPMethods.POST,
-          data: { simple: "asdasd" },
-        });
-        expect(false).toBeTruthy();
-      } catch (e) {
-        expect((e as Error).message).toBe("no request handler");
-      }
+      const result = await requestMapper.handleRequest({
+        url: "/simple",
+        method: HTTPMethods.POST,
+        data: { simple: "asdasd" },
+      });
+      expect(result).toEqual({
+        code: 500,
+        body: { errors: ["Internal Error"], success: false },
+      });
     });
     it("Returns responses from last request handler", async () => {
       const returns12Handler: CommunicationStrategy = {
         name: "returns12",
         handleRequest: async (data: any, payload: { topic: string }) => {
-          if (payload.topic === "someTopic") return { response: 12 };
+          if (payload.topic === "someTopic") return { body: 12 };
         },
       } as any;
       const returnsLovelyHandler: CommunicationStrategy = {
@@ -355,7 +353,7 @@ describe("RequestMapper", () => {
           payload: { headers: string }
         ) => {
           if (payload.headers === "someHeaders" && data.returns12 === 12)
-            return { response: "lovely" };
+            return { body: "lovely" };
         },
       } as any;
       const request: RequestSchema = {
@@ -395,7 +393,7 @@ describe("RequestMapper", () => {
         data: { simple: 12 },
       });
 
-      expect(result.response).toEqual("lovely");
+      expect(result.body).toEqual("lovely");
     });
     it("Immediatly returns no content if only provided handler is async", async () => {
       const returns12Handler: CommunicationStrategy = {
@@ -434,14 +432,14 @@ describe("RequestMapper", () => {
         data: { simple: 12 },
       });
 
-      expect(result.response).toEqual({ success: true });
-      expect(result.code).toEqual(204);
+      expect(result.body).toEqual({ success: true });
+      expect(result.code).toEqual(200);
     });
     it("Immediatly returns no content if only provided handler is async and throwed error", async () => {
       const returns12Handler: CommunicationStrategy = {
         name: "returns12",
         handleRequest: async (data: any, payload: { topic: string }) => {
-          throw new Error()
+          throw new Error();
         },
       } as any;
       const request: RequestSchema = {
@@ -474,15 +472,15 @@ describe("RequestMapper", () => {
         data: { simple: 12 },
       });
 
-      expect(result.response).toEqual({ success: true });
-      expect(result.code).toEqual(204);
+      expect(result.body).toEqual({ success: true });
+      expect(result.code).toEqual(200);
     });
     it("Returns code and response from not last handler if code >= 400", async () => {
       let isLovelyCalled = false;
       const returns12Handler: CommunicationStrategy = {
         name: "returns12",
         handleRequest: async (data: any, payload: { topic: string }) => {
-          if (payload.topic === "someTopic") return { response: 12, code: 422 };
+          if (payload.topic === "someTopic") return { body: 12, code: 422 };
         },
       } as any;
       const returnsLovelyHandler: CommunicationStrategy = {
@@ -531,7 +529,7 @@ describe("RequestMapper", () => {
         data: { simple: 12 },
       });
 
-      expect(result.response).toEqual(12);
+      expect(result.body).toEqual(12);
       expect(result.code).toEqual(422);
       expect(isLovelyCalled).toBeFalsy;
     });
