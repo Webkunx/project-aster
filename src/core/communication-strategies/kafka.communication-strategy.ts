@@ -22,11 +22,15 @@ export class KafkaCommunicationStrategy
     await this.consumer.init();
     await this.producer.init();
   }
-  // TODO: Add support for custom topic, partition key and add message name to message
+  /**  TODO: Add support for topic from payload,
+   * partition key from payload,
+   * dont wait if request were async
+   */
   async handleRequest(
     data: ParsedJSON,
     payload: PayloadForKafkaHandler
   ): Promise<Response> {
+    const { topic, partitionKey } = payload;
     const result: Message = await new Promise(async (res) => {
       const { partition: partitionToRespond, topic: topicToRespond } =
         await this.consumer.getConsumerDetails();
@@ -40,7 +44,14 @@ export class KafkaCommunicationStrategy
         res(data);
         this.consumer.removeListener(id, () => {});
       });
-      await this.producer.send(message);
+      await this.producer.send({
+        message,
+        topic,
+        partitionKey: KafkaCommunicationStrategy.getPartitionKey(
+          partitionKey,
+          data
+        ),
+      });
     });
 
     const response = Response.SuccessResponse({
@@ -51,5 +62,36 @@ export class KafkaCommunicationStrategy
       } as ParsedJSON,
     });
     return response;
+  }
+
+  private static getPartitionKey(
+    partitionKeyPath: string | undefined,
+    data: ParsedJSON
+  ): string | undefined {
+    if (!partitionKeyPath) return;
+    const partitionKeyPathParsed = partitionKeyPath.split(".");
+    let dataForLastPathPart: Record<string, unknown> | unknown = data as Record<
+      string,
+      unknown
+    >;
+    for (let i = 0; i < partitionKeyPathParsed.length; i++) {
+      const pathPart = partitionKeyPathParsed[i];
+      dataForLastPathPart = (dataForLastPathPart as Record<string, unknown>)[
+        pathPart
+      ];
+      if (
+        typeof dataForLastPathPart !== "object" &&
+        i !== partitionKeyPathParsed.length - 1
+      ) {
+        return;
+      }
+    }
+    if (typeof dataForLastPathPart === "string") {
+      return dataForLastPathPart;
+    }
+    if (typeof dataForLastPathPart === "number") {
+      return `${dataForLastPathPart}`;
+    }
+    return;
   }
 }

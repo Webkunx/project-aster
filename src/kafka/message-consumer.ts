@@ -11,13 +11,16 @@ type EachMessageListener = (payload: EachMessagePayload) => Promise<void>;
 
 export class MessageConsumer extends EventEmitter {
   private readonly topic: string;
-  private partition: number | undefined;
+  private partitions: number[] = [];
   constructor(private readonly consumer: Consumer) {
     super();
     this.topic = "api-gw-responses";
   }
 
   async init() {
+    this.consumer.on("consumer.group_join", (el) => {
+      this.partitions = el.payload.memberAssignment[this.topic];
+    });
     await this.consumer.connect();
     await this.consumer.subscribe({
       topic: this.topic,
@@ -31,15 +34,7 @@ export class MessageConsumer extends EventEmitter {
   }
 
   async getConsumerDetails() {
-    if (this.partition === undefined) {
-      const { memberAssignment } = (await this.consumer.describeGroup())
-        .members[0];
-      const { assignment } = AssignerProtocol.MemberAssignment.decode(
-        memberAssignment
-      ) as MemberAssignment;
-      this.partition = assignment[this.topic][0];
-    }
-    return { partition: this.partition, topic: this.topic };
+    return { partition: this.partitions[0], topic: this.topic };
   }
 
   private getResponsesListener(): EachMessageListener {

@@ -2,8 +2,8 @@ import { PayloadForRequestHandler } from "./communication-strategies/payloads/pa
 import { HTTPMethods } from "./http-methods";
 
 export enum ParamsToExtractFromResponse {
-  AllParams,
-  NoParams,
+  AllParams = "AllParams",
+  NoParams = "NoParams",
 }
 // TODO: Add extraction for concrete params
 // TODO?: Request parralelism + merging???
