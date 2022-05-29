@@ -1,4 +1,5 @@
-import { LoggingCommunicationStrategy } from "./core/communication-strategies/logging.communication-strategy";
+import { Response } from "./core/response";
+import { KafkaCommunicationStrategy } from "./core/communication-strategies/kafka.communication-strategy";
 import { fastify } from "fastify";
 import { RequestMapper } from "./core/request-mapper";
 import { readFile } from "fs/promises";
@@ -7,33 +8,25 @@ import { HTTPMethods } from "./core/http-methods";
 import { ParsedJSON } from "./core/json";
 
 const server = fastify();
-// const kafka = kafkaFactory(["localhost:29092"]);
-// const consumer = new MessageConsumer(kafka.consumer());
-// const producer = new MessageProducer(kafka.producer());
 
 const requestMapper = new RequestMapper({
   pathToValidationSchemas: path.join(__dirname, "../schemas/validation"),
 });
-requestMapper.addRequestHandler({
-  requestHandler: new LoggingCommunicationStrategy(),
-});
-
-// server.get("/ping", async (request, reply) => {
-//   return { success: true, timestamp: Date.now() };
-// });
 
 server.route({
   method: ["GET", "POST", "PUT", "DELETE"],
   url: "/*",
   handler: async (request, reply) => {
     try {
-      await requestMapper.handleRequest({
+      const response: Response = await requestMapper.handleRequest({
         url: request.url,
         method: request.method as HTTPMethods,
         data: {
           body: request.body as ParsedJSON,
         },
       });
+
+      return reply.code(response.code).send(response.body);
     } catch (error) {
       console.log(error);
     }
@@ -42,26 +35,16 @@ server.route({
   },
 });
 
-// server.get("/service", async (request, reply) => {
-//   const result = await new Promise(async (res) => {
-//     const message = Message.messageWithCorrelationId({});
-//     const id = message.getCorrelationId();
-//     consumer.on(id, (data: Message) => {
-//       res(data);
-//       consumer.removeListener(id, () => {});
-//     });
-//     await producer.send(message);
-//   });
-//   return result;
-// });
-
-server.listen(process.env.PORT || 4000, async (err, address) => {
+server.listen(process.env.PORT || 3000, async (err, address) => {
+  const kafkaCommunicationStrategy = new KafkaCommunicationStrategy();
+  await kafkaCommunicationStrategy.init();
+  requestMapper.addRequestHandler({
+    requestHandler: kafkaCommunicationStrategy,
+  });
   if (err) {
     console.error(err);
     process.exit(1);
   }
-  // await consumer.init();
-  // await producer.init();
   const request = JSON.parse(
     await readFile(
       path.join(__dirname, "../schemas/requests/login.json"),

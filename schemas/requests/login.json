@@ -1,8 +1,12 @@
 {
   "url": "/api/v1/auth/:userId/login",
   "method": "POST",
-  "topic": "auth",
-  "partitionKey": "params.userId",
-  "messageName": "LoginAttempt",
-  "validationSchema": "login"
+  "validationSchema": "login",
+  "requestHandlersSchemas": [
+    {
+      "name": "kafka",
+      "paramsToExtract": "AllParams",
+      "payloadForRequestHandler": { "partitionKey": "params.userId" }
+    }
+  ]
 }

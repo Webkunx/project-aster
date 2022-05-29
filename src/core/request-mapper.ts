@@ -223,14 +223,14 @@ export class RequestMapper {
         if (shouldNotWaitForRequestCompletion) {
           requestHandler
             .handleRequest(
-              { data, ...handlersReponses },
+              { ...(data as Record<string, ParsedJSON>), ...handlersReponses },
               payloadForRequestHandler
             )
             .catch((el) => console.log("Async handler throwed error"));
           continue;
         }
         const response = await requestHandler.handleRequest(
-          { data, ...handlersReponses },
+          { ...(data as Record<string, ParsedJSON>), ...handlersReponses },
           payloadForRequestHandler
         );
         if (response.code || 0 >= 400) {
@@ -250,7 +250,6 @@ export class RequestMapper {
     };
   }
 
-  // TODO: add proper error handling
   async handleRequest(request: IncomingRequest): Promise<Response> {
     const parsedRequest = this.getParsedRequest(request);
     if (!parsedRequest) {

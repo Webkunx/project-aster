@@ -8,12 +8,21 @@ export class MessageProducer {
     await this.producer.connect();
   }
 
-  async send(message: Message): Promise<void> {
+  async send({
+    message,
+    topic,
+    partitionKey,
+  }: {
+    message: Message;
+    topic?: string;
+    partitionKey?: string;
+  }): Promise<void> {
     await this.producer.send({
-      topic: "api-gw-requests",
+      topic: topic || "api-gw-requests",
       compression: CompressionTypes.LZ4,
       messages: [
         {
+          key: partitionKey || null,
           value: message.serialize(),
         },
       ],
