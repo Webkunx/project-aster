@@ -1,3 +1,4 @@
 export interface PayloadForRequestHandler {
-  shouldNotWaitForRequestCompletion: boolean;
+  shouldNotWaitForRequestCompletion?: boolean;
+  headers?: Record<string, string> 
 }
