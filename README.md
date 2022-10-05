@@ -18,6 +18,7 @@
 - Listen to schema updates via Kafka
 - Add fetching of schemas from S3
 - Add Plugin System
+- Ask Community about improvments
 - Add Rate Limiting with Compacting Sliding Window
 - Add k8s setup
 - Add WS
