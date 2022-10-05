@@ -21,7 +21,6 @@ describe("RequestMapper", () => {
         method: HTTPMethods.POST,
         defaultPayloadForRequestHandler: {
           topic: "simple",
-          messageName: "SimpleMessage",
         },
         validationSchema: "simple",
       };
@@ -45,7 +44,6 @@ describe("RequestMapper", () => {
         data: { simple: 12, params: {} },
         payload: {
           topic: "simple",
-          messageName: "SimpleMessage",
         },
       });
     });
@@ -55,7 +53,6 @@ describe("RequestMapper", () => {
         method: HTTPMethods.POST,
         defaultPayloadForRequestHandler: {
           topic: "simple",
-          messageName: "SimpleMessage",
         },
         validationSchema: "simple",
       };
@@ -96,7 +93,6 @@ describe("RequestMapper", () => {
         method: HTTPMethods.POST,
         defaultPayloadForRequestHandler: {
           topic: "simple",
-          messageName: "SimpleMessage",
         },
         validationSchema: "simple",
       };
@@ -104,7 +100,6 @@ describe("RequestMapper", () => {
       request2.url = "/something/very/hard/yes";
       request2.method = HTTPMethods.DELETE;
       request2.defaultPayloadForRequestHandler = {
-        messageName: "UniqueMessage",
         topic: "simple",
       };
       const request3 = JSON.parse(JSON.stringify(request)) as RequestSchema;
@@ -130,7 +125,6 @@ describe("RequestMapper", () => {
       expect(result.body).toEqual({
         payload: {
           topic: "simple",
-          messageName: "UniqueMessage",
         },
         data: {
           simple: 12,
@@ -144,7 +138,6 @@ describe("RequestMapper", () => {
         method: HTTPMethods.POST,
         defaultPayloadForRequestHandler: {
           topic: "simple",
-          messageName: "SimpleMessage",
         },
         validationSchema: "simple",
       };
@@ -174,7 +167,6 @@ describe("RequestMapper", () => {
         method: HTTPMethods.POST,
         defaultPayloadForRequestHandler: {
           topic: "simple",
-          messageName: "SimpleMessage",
         },
         validationSchema: "simple",
       };
@@ -206,7 +198,6 @@ describe("RequestMapper", () => {
         method: HTTPMethods.POST,
         defaultPayloadForRequestHandler: {
           topic: "simple",
-          messageName: "SimpleMessage",
         },
       };
 
@@ -229,7 +220,6 @@ describe("RequestMapper", () => {
         data: { simple: "chill", params: {} },
         payload: {
           topic: "simple",
-          messageName: "SimpleMessage",
         },
       });
     });
@@ -240,7 +230,6 @@ describe("RequestMapper", () => {
         method: HTTPMethods.POST,
         defaultPayloadForRequestHandler: {
           topic: "simple",
-          messageName: "SimpleMessage",
         },
         validationSchema: "simple",
       };
@@ -275,7 +264,6 @@ describe("RequestMapper", () => {
         method: HTTPMethods.POST,
         defaultPayloadForRequestHandler: {
           topic: "simple",
-          messageName: "SimpleMessage",
         },
         validationSchema: "simple",
       };
@@ -298,7 +286,6 @@ describe("RequestMapper", () => {
       expect(result.body).toEqual({
         payload: {
           topic: "simple",
-          messageName: "SimpleMessage",
         },
         data: {
           simple: 12,
@@ -316,7 +303,6 @@ describe("RequestMapper", () => {
         method: HTTPMethods.POST,
         defaultPayloadForRequestHandler: {
           topic: "simple",
-          messageName: "SimpleMessage",
         },
         validationSchema: "simple",
       };

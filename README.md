@@ -7,9 +7,10 @@
       1. Kafka
       2. Undici HTTP client
    2. Ability to work with schemas in runtime:
-      1. Add ability to add schema in runtime
-      2. Add ability to change schema in runtime
-   3. Ability to have multiple handlers in desired order - We need it to be able to authenticate request for example.
+      1. Add ability to add schema in runtime :white_check_mark:
+      2. Add ability to change schema in runtime :white_check_mark:
+      3. Add ability to work with FS and S3.
+   3. Ability to have multiple handlers in desired order - We need it to be able to authenticate request for example. :white_check_mark:
    4. Implement minimal needed metrics and logs for better observability:
       1. Add Pino Logger
       2. Add Analytics tool for logs (some OS project like Coralogix)
