@@ -14,7 +14,7 @@ export class Response {
   }: {
     body?: ParsedJSON;
     code?: number;
-  }): Response {
+  } = {}): Response {
     return new Response({ body: this.getBody(body), code: this.getCode(code) });
   }
 

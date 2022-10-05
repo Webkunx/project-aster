@@ -1,3 +1,4 @@
+import { PayloadForKafkaHandler } from "./../src/core/communication-strategies/payloads/payload-for-kafka-handler";
 import { CommunicationStrategy } from "./../src/core/communication-strategies/communication-strategy";
 import path from "path";
 import { HTTPMethods } from "../src/core/http-methods";
@@ -7,6 +8,7 @@ import {
   RequestSchema,
 } from "../src/core/request-schema";
 import { BaseCommunicationStrategy } from "../src/core/communication-strategies/base.communication-strategy";
+import { PayloadForRequestHandler } from "../src/core/communication-strategies/payloads/payload-for-request-handler";
 
 const baseHandler = new BaseCommunicationStrategy();
 
@@ -21,7 +23,7 @@ describe("RequestMapper", () => {
         method: HTTPMethods.POST,
         defaultPayloadForRequestHandler: {
           topic: "simple",
-        },
+        } as PayloadForKafkaHandler,
         validationSchema: "simple",
       };
 
@@ -53,7 +55,7 @@ describe("RequestMapper", () => {
         method: HTTPMethods.POST,
         defaultPayloadForRequestHandler: {
           topic: "simple",
-        },
+        } as PayloadForKafkaHandler,
         validationSchema: "simple",
       };
       const request2: RequestSchema = {
@@ -61,7 +63,7 @@ describe("RequestMapper", () => {
         method: HTTPMethods.POST,
         defaultPayloadForRequestHandler: {
           topic: "simple2",
-        },
+        } as PayloadForKafkaHandler,
       };
 
       const requestMapper = new RequestMapper({
@@ -93,7 +95,7 @@ describe("RequestMapper", () => {
         method: HTTPMethods.POST,
         defaultPayloadForRequestHandler: {
           topic: "simple",
-        },
+        } as PayloadForKafkaHandler,
         validationSchema: "simple",
       };
       const request2 = JSON.parse(JSON.stringify(request)) as RequestSchema;
@@ -101,7 +103,7 @@ describe("RequestMapper", () => {
       request2.method = HTTPMethods.DELETE;
       request2.defaultPayloadForRequestHandler = {
         topic: "simple",
-      };
+      } as PayloadForKafkaHandler;
       const request3 = JSON.parse(JSON.stringify(request)) as RequestSchema;
       request3.url = "/something/very/hard/no";
 
@@ -138,7 +140,7 @@ describe("RequestMapper", () => {
         method: HTTPMethods.POST,
         defaultPayloadForRequestHandler: {
           topic: "simple",
-        },
+        } as PayloadForKafkaHandler,
         validationSchema: "simple",
       };
 
@@ -167,7 +169,7 @@ describe("RequestMapper", () => {
         method: HTTPMethods.POST,
         defaultPayloadForRequestHandler: {
           topic: "simple",
-        },
+        } as PayloadForKafkaHandler,
         validationSchema: "simple",
       };
 
@@ -198,7 +200,7 @@ describe("RequestMapper", () => {
         method: HTTPMethods.POST,
         defaultPayloadForRequestHandler: {
           topic: "simple",
-        },
+        } as PayloadForKafkaHandler,
       };
 
       const requestMapper = new RequestMapper({
@@ -230,7 +232,7 @@ describe("RequestMapper", () => {
         method: HTTPMethods.POST,
         defaultPayloadForRequestHandler: {
           topic: "simple",
-        },
+        } as PayloadForKafkaHandler,
         validationSchema: "simple",
       };
 
@@ -264,7 +266,7 @@ describe("RequestMapper", () => {
         method: HTTPMethods.POST,
         defaultPayloadForRequestHandler: {
           topic: "simple",
-        },
+        } as PayloadForKafkaHandler,
         validationSchema: "simple",
       };
 
@@ -303,7 +305,7 @@ describe("RequestMapper", () => {
         method: HTTPMethods.POST,
         defaultPayloadForRequestHandler: {
           topic: "simple",
-        },
+        } as PayloadForKafkaHandler,
         validationSchema: "simple",
       };
 
@@ -328,7 +330,7 @@ describe("RequestMapper", () => {
     it("Returns responses from last request handler", async () => {
       const returns12Handler: CommunicationStrategy = {
         name: "returns12",
-        handleRequest: async (data: any, payload: { topic: string }) => {
+        handleRequest: async (data: any, payload: PayloadForKafkaHandler) => {
           if (payload.topic === "someTopic") return { body: 12 };
         },
       } as any;
@@ -336,9 +338,9 @@ describe("RequestMapper", () => {
         name: "returnsLovely",
         handleRequest: async (
           data: { returns12: number },
-          payload: { headers: string }
+          payload: PayloadForRequestHandler
         ) => {
-          if (payload.headers === "someHeaders" && data.returns12 === 12)
+          if (payload?.headers?.string === "someString" && data.returns12 === 12)
             return { body: "lovely" };
         },
       } as any;
@@ -351,12 +353,18 @@ describe("RequestMapper", () => {
           {
             name: "returns12",
             paramsToExtract: ParamsToExtractFromResponse.AllParams,
-            payloadForRequestHandler: { topic: "someTopic" },
+            payloadForRequestHandler: {
+              topic: "someTopic",
+            } as PayloadForKafkaHandler,
           },
           {
             name: "returnsLovely",
             paramsToExtract: ParamsToExtractFromResponse.AllParams,
-            payloadForRequestHandler: { headers: "someHeaders" },
+            payloadForRequestHandler: {
+              headers: {
+                string: "someString",
+              },
+            },
           },
         ],
       };
@@ -397,7 +405,9 @@ describe("RequestMapper", () => {
           {
             name: "returns12",
             paramsToExtract: ParamsToExtractFromResponse.AllParams,
-            payloadForRequestHandler: { topic: "someTopic" },
+            payloadForRequestHandler: {
+              topic: "someTopic",
+            } as PayloadForKafkaHandler,
             shouldNotWaitForRequestCompletion: true,
           },
         ],
@@ -437,7 +447,9 @@ describe("RequestMapper", () => {
           {
             name: "returns12",
             paramsToExtract: ParamsToExtractFromResponse.AllParams,
-            payloadForRequestHandler: { topic: "someTopic" },
+            payloadForRequestHandler: {
+              topic: "someTopic",
+            } as PayloadForKafkaHandler,
             shouldNotWaitForRequestCompletion: true,
           },
         ],
@@ -487,12 +499,18 @@ describe("RequestMapper", () => {
           {
             name: "returns12",
             paramsToExtract: ParamsToExtractFromResponse.AllParams,
-            payloadForRequestHandler: { topic: "someTopic" },
+            payloadForRequestHandler: {
+              topic: "someTopic",
+            } as PayloadForKafkaHandler,
           },
           {
             name: "returnsLovely",
             paramsToExtract: ParamsToExtractFromResponse.AllParams,
-            payloadForRequestHandler: { headers: "someHeaders" },
+            payloadForRequestHandler: {
+              headers: {
+                string: "someString",
+              },
+            },
           },
         ],
       };

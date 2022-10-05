@@ -22,23 +22,27 @@ export class KafkaCommunicationStrategy
     await this.consumer.init();
     await this.producer.init();
   }
-  /**  TODO: Add support for topic from payload,
-   * partition key from payload,
-   * dont wait if request were async
-   */
+
   async handleRequest(
     data: ParsedJSON,
     payload: PayloadForKafkaHandler
   ): Promise<Response> {
-    const { topic, partitionKey } = payload;
+    const { topic, partitionKey, shouldNotWaitForRequestCompletion } = payload;
     const result: Message = await new Promise(async (res) => {
       const { partition: partitionToRespond, topic: topicToRespond } =
         await this.consumer.getConsumerDetails();
 
       const message = Message.messageWithCorrelationId({
         data,
-        headers: { topicToRespond, partitionToRespond, awaitsResponse: true },
+        headers: {
+          topicToRespond,
+          partitionToRespond,
+          awaitsResponse: shouldNotWaitForRequestCompletion || false,
+        },
       });
+      if (shouldNotWaitForRequestCompletion) {
+        return Response.SuccessResponse();
+      }
       const id = message.getCorrelationId();
       this.consumer.on(id, (data: Message) => {
         res(data);
