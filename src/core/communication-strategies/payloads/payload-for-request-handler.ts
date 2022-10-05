@@ -1,1 +1,3 @@
-export interface PayloadForRequestHandler {}
+export interface PayloadForRequestHandler {
+  shouldNotWaitForRequestCompletion: boolean;
+}
