@@ -8,10 +8,11 @@ module.exports = {
   globals: {
     "ts-jest": {
       tsconfig: "tsconfig.json",
+      isolatedModules: true,
     },
   },
   transform: {
-    "^.+\\\\.(ts|tsx)$": "ts-jest",
+    "^.+\\\\.(ts|tsx)$": ["@swc/jest"],
   },
-  modulePathIgnorePatterns: ["<rootDir>/dist/"]
+  modulePathIgnorePatterns: ["<rootDir>/dist/"],
 };
