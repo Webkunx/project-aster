@@ -6,7 +6,7 @@ import {
   CommunicationStrategy,
   CommunicationStrategyName,
 } from "./communication-strategies/communication-strategy";
-import { ParsedJSON } from "../common/json";
+import { ParsedJSON } from "../common/parsed-json";
 import {
   ParamsToExtractFromResponse,
   RequestHandlerSchema,

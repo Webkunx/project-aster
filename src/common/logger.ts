@@ -2,7 +2,7 @@ import pino, {
   Logger as PinoLogger,
   LoggerOptions as PinoLoggerOptions,
 } from "pino";
-import { ParsedJSON } from "./json";
+import { ParsedJSON } from "./parsed-json";
 
 type DataToLog = { message: string; payload?: Record<string, ParsedJSON> };
 

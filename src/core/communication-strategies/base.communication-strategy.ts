@@ -1,4 +1,4 @@
-import { ParsedJSON } from "../../common/json";
+import { ParsedJSON } from "../../common/parsed-json";
 import { PayloadForRequestHandler } from "./payloads/payload-for-request-handler";
 import { CommunicationStrategy } from "./communication-strategy";
 import { Response } from "../response";
