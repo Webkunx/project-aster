@@ -1,4 +1,4 @@
-import { ParsedJSON } from "./../core/json";
+import { ParsedJSON } from "../common/json";
 import { v4 as uuid } from "uuid";
 
 type StringObject = Record<string, string | number | boolean>;

@@ -5,7 +5,7 @@ import { RequestMapper } from "./core/request-mapper";
 import { readFile } from "fs/promises";
 import path from "path";
 import { HTTPMethods } from "./core/http-methods";
-import { ParsedJSON } from "./core/json";
+import { ParsedJSON } from "./common/json";
 
 const server = fastify();
 

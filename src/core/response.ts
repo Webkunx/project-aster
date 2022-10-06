@@ -1,4 +1,4 @@
-import { ParsedJSON } from "./json";
+import { ParsedJSON } from "../common/json";
 
 export class Response {
   public readonly body: ParsedJSON;
