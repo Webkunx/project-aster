@@ -14,7 +14,7 @@ This inovative API GateWay allows systems to improve their experience with Distr
 - Extendible via Plugins - you can add anything into your request flow, like authorization, cache, idempotency
 
 ## Improvment Plan
-- Add Pino Logger
+- Add Pino Logger :white_check_mark:
 - Add Undici
 - Add gRPC
 - Change EventEmitter to Global Variable to improve performance
