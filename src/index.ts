@@ -10,7 +10,7 @@ import { Logger } from "./common/logger";
 import { getErrorPayloadToLog } from "./common/platform-error";
 
 const server = fastify();
-const logger = Logger.getLogger('server')
+const logger = Logger.getLogger("server");
 
 const requestMapper = new RequestMapper({
   pathToValidationSchemas: path.join(__dirname, "../schemas/validation"),
@@ -35,10 +35,9 @@ server.route({
         message: "Error Was Thrown from handler",
         payload: getErrorPayloadToLog(error),
       });
-      // Add error handling
+      const errorResponse = Response.InternalErrorResponse();
+      return reply.code(errorResponse.code).send(errorResponse.body);
     }
-
-    return { success: true };
   },
 });
 
@@ -63,5 +62,4 @@ server.listen(process.env.PORT || 3000, async (err, address) => {
   );
 
   requestMapper.addRequest(request);
-
 });
