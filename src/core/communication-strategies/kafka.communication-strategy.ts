@@ -1,6 +1,6 @@
 import { MessageConsumer } from "../../kafka/message-consumer";
 import { MessageProducer } from "./../../kafka/message-producer";
-import { ParsedJSON } from "../json";
+import { ParsedJSON } from "../../common/parsed-json";
 import { Response } from "../response";
 import { CommunicationStrategy } from "./communication-strategy";
 import { PayloadForKafkaHandler } from "./payloads/payload-for-kafka-handler";

@@ -1,4 +1,4 @@
-import { ParsedJSON } from "../json";
+import { ParsedJSON } from "../../common/parsed-json";
 import { PayloadForRequestHandler } from "./payloads/payload-for-request-handler";
 import { Response } from "../response";
 
