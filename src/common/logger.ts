@@ -12,7 +12,7 @@ enum LogLevel {
   WARN = "warn",
 }
 
-class Logger {
+export class Logger {
   private readonly pino: PinoLogger<PinoLoggerOptions>;
   private constructor(private readonly name: string) {
     this.pino = pino(this.getConfig());
