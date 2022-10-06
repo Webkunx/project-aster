@@ -6,8 +6,11 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { HTTPMethods } from "./core/http-methods";
 import { ParsedJSON } from "./common/parsed-json";
+import { Logger } from "./common/logger";
+import { getErrorPayloadToLog } from "./common/platform-error";
 
 const server = fastify();
+const logger = Logger.getLogger('server')
 
 const requestMapper = new RequestMapper({
   pathToValidationSchemas: path.join(__dirname, "../schemas/validation"),
@@ -28,7 +31,11 @@ server.route({
 
       return reply.code(response.code).send(response.body);
     } catch (error) {
-      console.log(error);
+      logger.error({
+        message: "Error Was Thrown from handler",
+        payload: getErrorPayloadToLog(error),
+      });
+      // Add error handling
     }
 
     return { success: true };
@@ -42,7 +49,10 @@ server.listen(process.env.PORT || 3000, async (err, address) => {
     requestHandler: kafkaCommunicationStrategy,
   });
   if (err) {
-    console.error(err);
+    logger.error({
+      message: "Cannot start server",
+      payload: getErrorPayloadToLog(err),
+    });
     process.exit(1);
   }
   const request = JSON.parse(
@@ -54,5 +64,4 @@ server.listen(process.env.PORT || 3000, async (err, address) => {
 
   requestMapper.addRequest(request);
 
-  console.log(`Server listening at ${address}`);
 });
