@@ -52,5 +52,3 @@ class Logger {
     return this.loggers[name];
   }
 }
-
-Logger.getLogger().error({ message: "Shiiet", payload: { yes: true } });
