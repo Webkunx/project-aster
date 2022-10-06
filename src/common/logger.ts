@@ -2,9 +2,8 @@ import pino, {
   Logger as PinoLogger,
   LoggerOptions as PinoLoggerOptions,
 } from "pino";
-import { ParsedJSON } from "./parsed-json";
 
-type DataToLog = { message: string; payload?: Record<string, ParsedJSON> };
+type DataToLog = { message: string; payload?: Record<string, unknown> };
 
 enum LogLevel {
   INFO = "info",

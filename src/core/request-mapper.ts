@@ -14,6 +14,8 @@ import {
 } from "./request-schema";
 import { Response } from "./response";
 import { PayloadForRequestHandler } from "./communication-strategies/payloads/payload-for-request-handler";
+import { Logger } from "../common/logger";
+import { getErrorPayloadToLog } from "../common/platform-error";
 
 const ajv = new Ajv({ allErrors: true, coerceTypes: true });
 
@@ -48,6 +50,8 @@ interface RequestHandlerToAdd {
   requestHandler: CommunicationStrategy;
   isDefault?: boolean;
 }
+
+const logger = Logger.getLogger("request-mapper");
 
 export class RequestMapper {
   private readonly pathToValidationSchemas: string;
@@ -226,7 +230,17 @@ export class RequestMapper {
               { ...(data as Record<string, ParsedJSON>), ...handlersReponses },
               payloadForRequestHandler
             )
-            .catch((el) => console.log("Async handler throwed error"));
+            .catch((el) =>
+              logger.warn({
+                message: "Async Handler Throwed error",
+                payload: {
+                  ...getErrorPayloadToLog(el),
+                  requestData: data,
+                  handlersReponses,
+                  requestHandlerName: requestHandler.name,
+                },
+              })
+            );
           continue;
         }
         const response = await requestHandler.handleRequest(
