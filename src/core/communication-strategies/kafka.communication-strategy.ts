@@ -23,6 +23,8 @@ export class KafkaCommunicationStrategy
     await this.producer.init();
   }
 
+  // TODO: Add Garbage Collection
+  // TODO: 
   async handleRequest(
     data: ParsedJSON,
     payload: PayloadForKafkaHandler
