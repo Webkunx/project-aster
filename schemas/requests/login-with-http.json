@@ -1,0 +1,17 @@
+{
+  "url": "/api/v1/auth/:userId/login-http",
+  "method": "POST",
+  "validationSchema": "login",
+  "requestHandlersSchemas": [
+    {
+      "name": "http-undici",
+      "paramsToExtract": "AllParams",
+      "payloadForRequestHandler": {
+        "host": "http://localhost:4000",
+        "method": "PATCH",
+        "targetUrl": "/birbi",
+        "headers": { "Content-Type": "application/json" }
+      }
+    }
+  ]
+}

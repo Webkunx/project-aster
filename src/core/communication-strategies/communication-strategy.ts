@@ -8,5 +8,9 @@ export interface CommunicationStrategy<
   T extends PayloadForRequestHandler = PayloadForRequestHandler
 > {
   name: CommunicationStrategyName;
-  handleRequest(data: ParsedJSON, payload: T): Promise<Response>;
+  handleRequest(
+    data: ParsedJSON,
+    payload: T,
+    requestUrl: string
+  ): Promise<Response>;
 }

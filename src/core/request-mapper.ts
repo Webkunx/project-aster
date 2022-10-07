@@ -33,6 +33,7 @@ interface RequestMapLeaf {
 }
 interface ParsedRequest extends Omit<RequestMapLeaf, "pathParams"> {
   params: Record<string, string>;
+  requestUrl: string;
 }
 
 type RequestMapLeafByMethod = {
@@ -184,6 +185,7 @@ export class RequestMapper {
     }
     return {
       ...requestMapLeaf,
+      requestUrl: url,
       params: requestMapLeaf.pathParams.reduce(
         (acc: Record<string, string>, value, idx) => {
           acc[value] = paramValues[idx];
@@ -206,7 +208,8 @@ export class RequestMapper {
       return (data) => {
         return requestHandler.handleRequest(
           data,
-          parsedRequest.defaultPayloadForRequestHandler
+          parsedRequest.defaultPayloadForRequestHandler,
+          parsedRequest.requestUrl
         );
       };
     }
@@ -231,7 +234,8 @@ export class RequestMapper {
           requestHandler
             .handleRequest(
               { ...(data as Record<string, ParsedJSON>), ...handlersReponses },
-              payloadForRequestHandler
+              payloadForRequestHandler,
+              parsedRequest.requestUrl
             )
             .catch((el) =>
               logger.warn({
@@ -248,7 +252,8 @@ export class RequestMapper {
         }
         const response = await requestHandler.handleRequest(
           { ...(data as Record<string, ParsedJSON>), ...handlersReponses },
-          payloadForRequestHandler
+          payloadForRequestHandler,
+          parsedRequest.requestUrl
         );
         if (response.code || 0 >= 400) {
           return response;

@@ -24,7 +24,7 @@ export class KafkaCommunicationStrategy
   }
 
   // TODO: Add Garbage Collection
-  // TODO: 
+  // TODO:
   async handleRequest(
     data: ParsedJSON,
     payload: PayloadForKafkaHandler
@@ -62,10 +62,8 @@ export class KafkaCommunicationStrategy
 
     const response = Response.SuccessResponse({
       code: 200,
-      body: {
-        data: result.data,
-        headers: result.headers,
-      } as ParsedJSON,
+      body: result.data,
+      headers: result.headers,
     });
     return response;
   }
