@@ -26,8 +26,9 @@ server.route({
         url: request.url,
         method: request.method as HTTPMethods,
         data: {
-          body: request.body as ParsedJSON,
-          query: request.query as ParsedJSON,
+          body: request.body as any,
+          query: request.query as any,
+          headers: request.headers as any,
         },
       });
 

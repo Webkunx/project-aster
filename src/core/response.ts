@@ -1,6 +1,5 @@
 import { ParsedJSON } from "../common/parsed-json";
-
-type Headers = Record<string, unknown>;
+import { Headers } from "../common/headers";
 
 export class Response {
   private constructor(
@@ -9,7 +8,7 @@ export class Response {
     public readonly headers?: Headers
   ) {}
 
-  static SuccessResponse({
+  static CustomResponse({
     body,
     code,
     headers,

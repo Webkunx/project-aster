@@ -4,6 +4,7 @@ import { ParsedJSON } from "../../common/parsed-json";
 import { Response } from "../response";
 import { CommunicationStrategy } from "./communication-strategy";
 import { Pool } from "undici";
+import { IncomingRequestData } from "../../common/incoming-request-data";
 
 const logger = Logger.getLogger("http-undici");
 export class HTTPCommunicationStrategy
@@ -17,32 +18,39 @@ export class HTTPCommunicationStrategy
   }
 
   async handleRequest(
-    data: ParsedJSON,
-    payload: PayloadForHTTPHandler,
-    requestUrl: string
+    incomingRequestData: IncomingRequestData,
+    requestUrl: string,
+    handlersData: Record<string, ParsedJSON>,
+    payload: PayloadForHTTPHandler
   ): Promise<Response> {
-    const { targetUrl, host, headers, method } = payload;
+    const { targetUrl, host, headers: payloadHeaders, method } = payload;
     const url = targetUrl || requestUrl;
     const pool = this.getPool(host);
+    const {
+      query,
+      body: incomingRequestBody,
+      headers: incomingRequestHeaders,
+    } = incomingRequestData;
 
     const {
       body,
       headers: responseHeaders,
       statusCode,
     } = await pool.request({
-      body: JSON.stringify(data),
+      body: JSON.stringify({ body: incomingRequestBody, ...handlersData }),
       method,
       path: url,
-      headers,
+      headers: { ...incomingRequestHeaders, ...payloadHeaders } as any,
+      query,
     });
 
     const parsedBody = await body.json();
     logger.info({ message: parsedBody });
 
-    return Response.SuccessResponse({
+    return Response.CustomResponse({
       code: statusCode,
       body: parsedBody,
-      headers: responseHeaders,
+      headers: responseHeaders as any,
     });
   }
 

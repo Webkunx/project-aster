@@ -1,3 +1,4 @@
+import { IncomingRequestData } from "./../../common/incoming-request-data";
 import { ParsedJSON } from "../../common/parsed-json";
 import { PayloadForRequestHandler } from "./payloads/payload-for-request-handler";
 import { Response } from "../response";
@@ -9,8 +10,9 @@ export interface CommunicationStrategy<
 > {
   name: CommunicationStrategyName;
   handleRequest(
-    data: ParsedJSON,
-    payload: T,
-    requestUrl: string
+    incomingRequestData: IncomingRequestData,
+    requestUrl: string,
+    handlersData: Record<string, ParsedJSON>,
+    payload: T
   ): Promise<Response>;
 }

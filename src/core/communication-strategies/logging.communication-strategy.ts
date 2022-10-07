@@ -26,7 +26,7 @@ export class LoggingCommunicationStrategy implements CommunicationStrategy {
     });
     logger.info({ message: "========" });
 
-    return Response.SuccessResponse({});
+    return Response.CustomResponse({});
   }
   get name() {
     return this._name;
