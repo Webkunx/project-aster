@@ -37,7 +37,7 @@ export class KafkaCommunicationStrategy
         headers: {
           topicToRespond,
           partitionToRespond,
-          awaitsResponse: shouldNotWaitForRequestCompletion || false,
+          awaitsResponse: !shouldNotWaitForRequestCompletion,
         },
       });
       if (shouldNotWaitForRequestCompletion) {
