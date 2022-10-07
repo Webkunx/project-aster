@@ -21,6 +21,7 @@
     "kafkajs-lz4": "^2.0.0-beta.0",
     "pino": "^8.6.1",
     "pino-pretty": "^9.1.1",
+    "undici": "^5.11.0",
     "uuid": "^8.3.2"
   },
   "devDependencies": {
