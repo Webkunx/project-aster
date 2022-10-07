@@ -6,7 +6,6 @@ import { RequestMapper } from "./core/request-mapper";
 import { readFile } from "fs/promises";
 import path from "path";
 import { HTTPMethods } from "./core/http-methods";
-import { ParsedJSON } from "./common/parsed-json";
 import { Logger } from "./common/logger";
 import { getErrorPayloadToLog } from "./common/platform-error";
 

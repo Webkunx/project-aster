@@ -32,6 +32,10 @@ export class HTTPCommunicationStrategy
       headers: incomingRequestHeaders,
     } = incomingRequestData;
 
+    logger.info({
+      message: "Ooops",
+      payload: { ...incomingRequestHeaders, ...payloadHeaders },
+    });
     const {
       body,
       headers: responseHeaders,
@@ -40,7 +44,8 @@ export class HTTPCommunicationStrategy
       body: JSON.stringify({ body: incomingRequestBody, ...handlersData }),
       method,
       path: url,
-      headers: { ...incomingRequestHeaders, ...payloadHeaders } as any,
+      // TODO - fix connection header; // try to add params to url
+      headers: { ...payloadHeaders } as any,
       query,
     });
 
