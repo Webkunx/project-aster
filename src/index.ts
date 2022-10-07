@@ -26,6 +26,7 @@ server.route({
         method: request.method as HTTPMethods,
         data: {
           body: request.body as ParsedJSON,
+          query: request.query as ParsedJSON,
         },
       });
 
@@ -62,4 +63,5 @@ server.listen(process.env.PORT || 3000, async (err, address) => {
   );
 
   requestMapper.addRequest(request);
+  logger.info({ message: "Server Started" });
 });

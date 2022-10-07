@@ -77,7 +77,10 @@ export class RequestMapper {
   }
 
   private static parseUrl(url: string) {
-    return url.split("/").filter((el) => el);
+    return url
+      .split("?")[0]
+      .split("/")
+      .filter((el) => el);
   }
 
   async addRequest(request: RequestSchema): Promise<void> {
@@ -267,6 +270,7 @@ export class RequestMapper {
   async handleRequest(request: IncomingRequest): Promise<Response> {
     const parsedRequest = this.getParsedRequest(request);
     if (!parsedRequest) {
+      logger.info({ payload: { request }, message: "Unknown Request" });
       return Response.UnknownRequestResponse();
     }
     const { validationFunction, params } = parsedRequest;
