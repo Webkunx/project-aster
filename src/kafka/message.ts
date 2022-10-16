@@ -1,19 +1,12 @@
+import { Headers } from "./../common/headers";
 import { ParsedJSON } from "../common/parsed-json";
 import { v4 as uuid } from "uuid";
 
-type StringObject = Record<string, string | number | boolean>;
-
 export class Message {
   public readonly data?: ParsedJSON;
-  public readonly headers?: StringObject;
+  public readonly headers?: Headers;
 
-  constructor({
-    data,
-    headers,
-  }: {
-    headers?: StringObject;
-    data?: ParsedJSON;
-  }) {
+  constructor({ data, headers }: { headers?: Headers; data?: ParsedJSON }) {
     this.data = data;
     this.headers = headers;
   }
@@ -36,7 +29,7 @@ export class Message {
     data,
   }: {
     data?: ParsedJSON;
-    headers?: StringObject;
+    headers?: Headers;
   }) {
     return new MessageWithCorrelationId({ headers, data });
   }
@@ -52,13 +45,7 @@ export class Message {
 class MessageWithCorrelationId extends Message {
   public readonly correlationId: string;
 
-  constructor({
-    headers,
-    data,
-  }: {
-    headers?: StringObject;
-    data?: ParsedJSON;
-  }) {
+  constructor({ headers, data }: { headers?: Headers; data?: ParsedJSON }) {
     const correlationId = uuid();
     headers = { ...headers, id: correlationId };
     super({ headers, data });

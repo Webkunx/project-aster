@@ -6,6 +6,7 @@ import { CommunicationStrategy } from "./communication-strategy";
 import { PayloadForKafkaHandler } from "./payloads/payload-for-kafka-handler";
 import { kafkaFactory } from "../../kafka/kafka.factory";
 import { Message } from "../../kafka/message";
+import { IncomingRequestData } from "../../common/incoming-request-data";
 export class KafkaCommunicationStrategy
   implements CommunicationStrategy<PayloadForKafkaHandler>
 {
@@ -23,25 +24,29 @@ export class KafkaCommunicationStrategy
     await this.producer.init();
   }
 
+  // TODO: Add Garbage Collection
+  // TODO:
   async handleRequest(
-    data: ParsedJSON,
+    incomingRequestData: IncomingRequestData,
+    requestUrl: string,
+    handlersData: Record<string, ParsedJSON>,
     payload: PayloadForKafkaHandler
   ): Promise<Response> {
     const { topic, partitionKey, shouldNotWaitForRequestCompletion } = payload;
     const result: Message = await new Promise(async (res) => {
       const { partition: partitionToRespond, topic: topicToRespond } =
         await this.consumer.getConsumerDetails();
-
+      const data = { ...incomingRequestData, ...handlersData };
       const message = Message.messageWithCorrelationId({
         data,
         headers: {
           topicToRespond,
           partitionToRespond,
-          awaitsResponse: shouldNotWaitForRequestCompletion || false,
+          awaitsResponse: !shouldNotWaitForRequestCompletion,
         },
       });
       if (shouldNotWaitForRequestCompletion) {
-        return Response.SuccessResponse();
+        return Response.CustomResponse();
       }
       const id = message.getCorrelationId();
       this.consumer.on(id, (data: Message) => {
@@ -58,12 +63,10 @@ export class KafkaCommunicationStrategy
       });
     });
 
-    const response = Response.SuccessResponse({
+    const response = Response.CustomResponse({
       code: 200,
-      body: {
-        data: result.data,
-        headers: result.headers,
-      } as ParsedJSON,
+      body: result.data,
+      headers: result.headers,
     });
     return response;
   }

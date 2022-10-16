@@ -1,3 +1,4 @@
+import { IncomingRequestData } from "./../common/incoming-request-data";
 import path from "path";
 import Ajv from "ajv";
 import { readFile } from "fs/promises";
@@ -33,6 +34,7 @@ interface RequestMapLeaf {
 }
 interface ParsedRequest extends Omit<RequestMapLeaf, "pathParams"> {
   params: Record<string, string>;
+  requestUrl: string;
 }
 
 type RequestMapLeafByMethod = {
@@ -44,7 +46,7 @@ type RequestMap = {
 interface IncomingRequest {
   url: string;
   method: HTTPMethods;
-  data: ParsedJSON;
+  data: IncomingRequestData;
 }
 interface RequestHandlerToAdd {
   requestHandler: CommunicationStrategy;
@@ -77,7 +79,10 @@ export class RequestMapper {
   }
 
   private static parseUrl(url: string) {
-    return url.split("/").filter((el) => el);
+    return url
+      .split("?")[0]
+      .split("/")
+      .filter((el) => el);
   }
 
   async addRequest(request: RequestSchema): Promise<void> {
@@ -181,6 +186,7 @@ export class RequestMapper {
     }
     return {
       ...requestMapLeaf,
+      requestUrl: url,
       params: requestMapLeaf.pathParams.reduce(
         (acc: Record<string, string>, value, idx) => {
           acc[value] = paramValues[idx];
@@ -193,7 +199,7 @@ export class RequestMapper {
 
   private getFunctionToHandleRequest(
     parsedRequest: ParsedRequest
-  ): ((data: ParsedJSON) => Promise<Response>) | null {
+  ): ((data: IncomingRequestData) => Promise<Response>) | null {
     if (!parsedRequest.requestHandlersSchemas?.length) {
       const requestHandler =
         this.requestHandlers[this.defaultRequestHanlerId as string];
@@ -203,6 +209,8 @@ export class RequestMapper {
       return (data) => {
         return requestHandler.handleRequest(
           data,
+          parsedRequest.requestUrl,
+          {},
           parsedRequest.defaultPayloadForRequestHandler
         );
       };
@@ -212,7 +220,7 @@ export class RequestMapper {
       const requestHandlersSchemas =
         parsedRequest.requestHandlersSchemas as RequestHandlerSchema[];
       const handlersReponses: Record<string, ParsedJSON> = {};
-      let lastHandlerResponse = Response.SuccessResponse({});
+      let lastHandlerResponse = Response.CustomResponse({});
       const requestHandlersSchemasLength =
         requestHandlersSchemas.length as number;
       for (let i = 0; i < requestHandlersSchemasLength; i++) {
@@ -227,7 +235,9 @@ export class RequestMapper {
         if (shouldNotWaitForRequestCompletion) {
           requestHandler
             .handleRequest(
-              { ...(data as Record<string, ParsedJSON>), ...handlersReponses },
+              data,
+              parsedRequest.requestUrl,
+              handlersReponses,
               payloadForRequestHandler
             )
             .catch((el) =>
@@ -244,7 +254,9 @@ export class RequestMapper {
           continue;
         }
         const response = await requestHandler.handleRequest(
-          { ...(data as Record<string, ParsedJSON>), ...handlersReponses },
+          data,
+          parsedRequest.requestUrl,
+          handlersReponses,
           payloadForRequestHandler
         );
         if (response.code || 0 >= 400) {
@@ -267,6 +279,7 @@ export class RequestMapper {
   async handleRequest(request: IncomingRequest): Promise<Response> {
     const parsedRequest = this.getParsedRequest(request);
     if (!parsedRequest) {
+      logger.info({ payload: { request }, message: "Unknown Request" });
       return Response.UnknownRequestResponse();
     }
     const { validationFunction, params } = parsedRequest;
@@ -275,7 +288,7 @@ export class RequestMapper {
       return Response.InternalErrorResponse();
     }
 
-    const data = { ...(request.data as Record<string, unknown>), params };
+    const data = { ...request.data, params };
 
     if (!validationFunction) {
       return await handleRequest(data);

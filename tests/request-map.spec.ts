@@ -39,11 +39,11 @@ describe("RequestMapper", () => {
       const result = await requestMapper.handleRequest({
         url: "/simple",
         method: HTTPMethods.POST,
-        data: { simple: 12 },
+        data: { body: 12, query: {}, headers: {} },
       });
 
       expect(result.body).toEqual({
-        data: { simple: 12, params: {} },
+        data: { body: 12, params: {}, query: {}, headers: {} },
         payload: {
           topic: "simple",
         },
@@ -79,11 +79,11 @@ describe("RequestMapper", () => {
       const result = await requestMapper.handleRequest({
         url: "/simple",
         method: HTTPMethods.POST,
-        data: { simple: "like" },
+        data: { body: "like", query: {}, headers: {} },
       });
 
       expect(result.body).toEqual({
-        data: { simple: "like", params: {} },
+        data: { body: "like", params: {}, query: {}, headers: {} },
         payload: {
           topic: "simple2",
         },
@@ -121,7 +121,7 @@ describe("RequestMapper", () => {
       const result = await requestMapper.handleRequest({
         url: "/something/very/hard/yes",
         method: HTTPMethods.DELETE,
-        data: { simple: 12 },
+        data: { body: 12, query: {}, headers: {} },
       });
 
       expect(result.body).toEqual({
@@ -129,8 +129,10 @@ describe("RequestMapper", () => {
           topic: "simple",
         },
         data: {
-          simple: 12,
+          body: 12,
           params: {},
+          query: {},
+          headers: {},
         },
       });
     });
@@ -156,7 +158,7 @@ describe("RequestMapper", () => {
       const result = await requestMapper.handleRequest({
         url: "/who-are-you",
         method: HTTPMethods.POST,
-        data: { simple: "asdasd" },
+        data: { body: "asdasd", query: {}, headers: {} },
       });
       expect(result).toEqual({
         code: 404,
@@ -185,7 +187,7 @@ describe("RequestMapper", () => {
       const result = await requestMapper.handleRequest({
         url: "/simple",
         method: HTTPMethods.DELETE,
-        data: { simple: "asdasd" },
+        data: { body: "asdasd", query: {}, headers: {} },
       });
       expect(result).toEqual({
         code: 404,
@@ -215,11 +217,11 @@ describe("RequestMapper", () => {
       const result = await requestMapper.handleRequest({
         url: "/simple",
         method: HTTPMethods.POST,
-        data: { simple: "chill" },
+        data: { body: "chill", query: {}, headers: {} },
       });
 
       expect(result.body).toEqual({
-        data: { simple: "chill", params: {} },
+        data: { body: "chill", params: {}, query: {}, headers: {} },
         payload: {
           topic: "simple",
         },
@@ -248,12 +250,12 @@ describe("RequestMapper", () => {
       const result = await requestMapper.handleRequest({
         url: "/simple",
         method: HTTPMethods.POST,
-        data: { simple: "asdasd" },
+        data: { body: "asdasd", query: {}, headers: {} },
       });
       expect(result).toEqual({
         code: 422,
         body: {
-          errors: ["parameter: .simple should be integer"],
+          errors: ["parameter: .body should be integer"],
           success: false,
         },
       });
@@ -282,7 +284,7 @@ describe("RequestMapper", () => {
       const result = await requestMapper.handleRequest({
         url: "/simple/someUserId",
         method: HTTPMethods.POST,
-        data: { simple: 12 },
+        data: { body: 12, query: {}, headers: {} },
       });
 
       expect(result.body).toEqual({
@@ -290,10 +292,12 @@ describe("RequestMapper", () => {
           topic: "simple",
         },
         data: {
-          simple: 12,
+          body: 12,
           params: {
             id: "someUserId",
           },
+          query: {},
+          headers: {},
         },
       });
     });
@@ -320,7 +324,7 @@ describe("RequestMapper", () => {
       const result = await requestMapper.handleRequest({
         url: "/simple",
         method: HTTPMethods.POST,
-        data: { simple: "asdasd" },
+        data: { body: "asdasd", query: {}, headers: {} },
       });
       expect(result).toEqual({
         code: 500,
@@ -330,17 +334,22 @@ describe("RequestMapper", () => {
     it("Returns responses from last request handler", async () => {
       const returns12Handler: CommunicationStrategy = {
         name: "returns12",
-        handleRequest: async (data: any, payload: PayloadForKafkaHandler) => {
+        handleRequest: async (a, b, c, payload: PayloadForKafkaHandler) => {
           if (payload.topic === "someTopic") return { body: 12 };
         },
       } as any;
       const returnsLovelyHandler: CommunicationStrategy = {
         name: "returnsLovely",
         handleRequest: async (
+          a,
+          b,
           data: { returns12: number },
           payload: PayloadForRequestHandler
         ) => {
-          if (payload?.headers?.string === "someString" && data.returns12 === 12)
+          if (
+            payload?.headers?.string === "someString" &&
+            data.returns12 === 12
+          )
             return { body: "lovely" };
         },
       } as any;
@@ -384,7 +393,7 @@ describe("RequestMapper", () => {
       const result = await requestMapper.handleRequest({
         url: "/simple",
         method: HTTPMethods.POST,
-        data: { simple: 12 },
+        data: { body: 12, query: {}, headers: {} },
       });
 
       expect(result.body).toEqual("lovely");
@@ -425,7 +434,7 @@ describe("RequestMapper", () => {
       const result = await requestMapper.handleRequest({
         url: "/simple",
         method: HTTPMethods.POST,
-        data: { simple: 12 },
+        data: { body: 12, query: {}, headers: {} },
       });
 
       expect(result.body).toEqual({ success: true });
@@ -467,7 +476,7 @@ describe("RequestMapper", () => {
       const result = await requestMapper.handleRequest({
         url: "/simple",
         method: HTTPMethods.POST,
-        data: { simple: 12 },
+        data: { body: 12, query: {}, headers: {} },
       });
 
       expect(result.body).toEqual({ success: true });
@@ -477,16 +486,13 @@ describe("RequestMapper", () => {
       let isLovelyCalled = false;
       const returns12Handler: CommunicationStrategy = {
         name: "returns12",
-        handleRequest: async (data: any, payload: { topic: string }) => {
+        handleRequest: async (a, b, c, payload: { topic: string }) => {
           if (payload.topic === "someTopic") return { body: 12, code: 422 };
         },
       } as any;
       const returnsLovelyHandler: CommunicationStrategy = {
         name: "returnsLovely",
-        handleRequest: async (
-          data: { returns12: number },
-          payload: { headers: string }
-        ) => {
+        handleRequest: async () => {
           isLovelyCalled = true;
         },
       } as any;
@@ -530,7 +536,7 @@ describe("RequestMapper", () => {
       const result = await requestMapper.handleRequest({
         url: "/simple",
         method: HTTPMethods.POST,
-        data: { simple: 12 },
+        data: { body: 12, query: {}, headers: {} },
       });
 
       expect(result.body).toEqual(12);

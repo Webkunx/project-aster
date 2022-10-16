@@ -1,3 +1,4 @@
+import { HTTPCommunicationStrategy } from "./core/communication-strategies/http.communication-strategy";
 import { Response } from "./core/response";
 import { KafkaCommunicationStrategy } from "./core/communication-strategies/kafka.communication-strategy";
 import { fastify } from "fastify";
@@ -5,7 +6,6 @@ import { RequestMapper } from "./core/request-mapper";
 import { readFile } from "fs/promises";
 import path from "path";
 import { HTTPMethods } from "./core/http-methods";
-import { ParsedJSON } from "./common/parsed-json";
 import { Logger } from "./common/logger";
 import { getErrorPayloadToLog } from "./common/platform-error";
 
@@ -25,11 +25,16 @@ server.route({
         url: request.url,
         method: request.method as HTTPMethods,
         data: {
-          body: request.body as ParsedJSON,
+          body: request.body as any,
+          query: request.query as any,
+          headers: request.headers as any,
         },
       });
 
-      return reply.code(response.code).send(response.body);
+      return reply
+        .code(response.code)
+        .headers(response.headers || {})
+        .send(response.body);
     } catch (error) {
       logger.error({
         message: "Error Was Thrown from handler",
@@ -47,6 +52,9 @@ server.listen(process.env.PORT || 3000, async (err, address) => {
   requestMapper.addRequestHandler({
     requestHandler: kafkaCommunicationStrategy,
   });
+  requestMapper.addRequestHandler({
+    requestHandler: new HTTPCommunicationStrategy(),
+  });
   if (err) {
     logger.error({
       message: "Cannot start server",
@@ -60,6 +68,14 @@ server.listen(process.env.PORT || 3000, async (err, address) => {
       "utf-8"
     )
   );
+  const requestForHttp = JSON.parse(
+    await readFile(
+      path.join(__dirname, "../schemas/requests/login-with-http.json"),
+      "utf-8"
+    )
+  );
 
   requestMapper.addRequest(request);
+  requestMapper.addRequest(requestForHttp);
+  logger.info({ message: "Server Started" });
 });

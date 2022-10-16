@@ -1,13 +1,9 @@
 {
   "type": "object",
-  "required": [
-    "simple"
-  ],
+  "required": ["body"],
   "properties": {
-    "simple": {
+    "body": {
       "type": "integer"
     }
   }
 }
-
-
