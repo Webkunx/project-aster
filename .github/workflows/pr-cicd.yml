@@ -18,3 +18,5 @@ jobs:
       - uses: romeovs/lcov-reporter-action@v0.3.1
         with:
           lcov-file: ./cov/lcov.info
+      - name: SonarQube Scan
+        uses: kitabisa/sonarqube-action@v1.2.0
